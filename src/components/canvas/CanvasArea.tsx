@@ -80,7 +80,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
         scaleY={stageScale}
         x={stagePos.x}
         y={stagePos.y}
-        draggable
+        draggable={calibrationMode === null}
         onWheel={handleWheel}
         onClick={handleStageClick}
         onTap={handleStageClick}
