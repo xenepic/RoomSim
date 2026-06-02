@@ -14,6 +14,40 @@ function App() {
   // Restore saved project on first load
   useEffect(() => { loadProject(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keyboard shortcuts: Delete = remove selected, Ctrl+C = duplicate selected
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't fire when the user is typing in a form field
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      const { selectedId, project, deleteFurniture, addFurniture } = useAppStore.getState();
+
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedId) deleteFurniture(selectedId);
+      }
+
+      if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
+        const item = project.furniture.find((f) => f.id === selectedId);
+        if (!item) return;
+        e.preventDefault();
+        addFurniture({
+          name: item.name,
+          xCm: item.xCm + 10,
+          yCm: item.yCm + 10,
+          widthCm: item.widthCm,
+          depthCm: item.depthCm,
+          rotation: item.rotation,
+          color: item.color,
+          presetId: item.presetId,
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Calibration state is lifted here because ScaleCalibrator (left panel)
   // and RulerOverlay (canvas) both need to read and update it.
   const [calibrationMode, setCalibrationMode] = useState<CalibrationMode>(null);

@@ -58,12 +58,13 @@ export function FurnitureShape({
     node.scaleX(1);
     node.scaleY(1);
 
+    // Round to 2 decimal places to absorb floating-point drift from Konva's matrix math
     onChange({
-      xCm: node.x() / ppc,
-      yCm: node.y() / ppc,
-      widthCm: Math.max(10, item.widthCm * Math.abs(scaleX)),
-      depthCm: Math.max(10, item.depthCm * Math.abs(scaleY)),
-      rotation: node.rotation(),
+      xCm: Math.round(node.x() / ppc * 100) / 100,
+      yCm: Math.round(node.y() / ppc * 100) / 100,
+      widthCm: Math.max(10, Math.round(item.widthCm * Math.abs(scaleX) * 100) / 100),
+      depthCm: Math.max(10, Math.round(item.depthCm * Math.abs(scaleY) * 100) / 100),
+      rotation: Math.round(node.rotation() * 100) / 100,
     });
   };
 
