@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:\\\\Users\\\\xenep\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\superpowers\\\\5.1.0\\\\scripts\\\\start-server.sh *)",
+      "Bash(bash *)",
+      "Bash(npm create *)",
+      "Bash(npm install *)",
+      "Bash(git init *)",
+      "Bash(echo \"node_modules/\")",
+      "Bash(echo \".superpowers/\")",
+      "Bash(echo \"dist/\")",
+      "Bash(git add *)"
+    ]
+  }
+}
