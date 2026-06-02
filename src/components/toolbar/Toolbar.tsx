@@ -1,4 +1,5 @@
 import type { CalibrationMode } from '../../App';
+import { ImageUploader } from './ImageUploader';
 
 interface ToolbarProps {
   calibrationMode: CalibrationMode;
@@ -10,5 +11,10 @@ interface ToolbarProps {
 }
 
 export function Toolbar(_props: ToolbarProps) {
-  return <div style={{ padding: 12 }}>Toolbar (placeholder)</div>;
+  return (
+    <>
+      <ImageUploader />
+      {/* Further sections added in subsequent tasks */}
+    </>
+  );
 }
