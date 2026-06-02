@@ -1,5 +1,9 @@
 import type { CalibrationMode } from '../../App';
 import { ImageUploader } from './ImageUploader';
+import { FurniturePresetList } from './FurniturePresetList';
+import { ScaleCalibrator } from './ScaleCalibrator';
+import { SnapGridToggle } from './SnapGridToggle';
+import { ProjectActions } from './ProjectActions';
 
 interface ToolbarProps {
   calibrationMode: CalibrationMode;
@@ -10,11 +14,24 @@ interface ToolbarProps {
   onScaleSet: () => void;
 }
 
-export function Toolbar(_props: ToolbarProps) {
+export function Toolbar({
+  calibrationMode, rulerPoints, tatamiRect,
+  onStartCalibration, onCancelCalibration, onScaleSet,
+}: ToolbarProps) {
   return (
     <>
       <ImageUploader />
-      {/* Further sections added in subsequent tasks */}
+      <FurniturePresetList />
+      <ScaleCalibrator
+        calibrationMode={calibrationMode}
+        rulerPoints={rulerPoints}
+        tatamiRect={tatamiRect}
+        onStartCalibration={onStartCalibration}
+        onCancelCalibration={onCancelCalibration}
+        onScaleSet={onScaleSet}
+      />
+      <SnapGridToggle />
+      <ProjectActions />
     </>
   );
 }
