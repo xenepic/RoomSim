@@ -88,10 +88,10 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
         onTap={handleStageClick}
         onDragEnd={handleStageDragEnd}
       >
+        <FloorplanLayer />
         {snapEnabled && (
           <GridLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} />
         )}
-        <FloorplanLayer />
         <FurnitureLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} />
         {calibrationMode && (
           <RulerOverlay

@@ -38,12 +38,16 @@ export function GridLayer({ stageScale, stagePos, canvasSize }: GridLayerProps) 
   // Keep stroke at 1 CSS-pixel regardless of zoom level
   const lineWidth = 1 / stageScale;
 
+  // Dashed lines in a muted blue-gray; dash lengths scale with zoom so they stay visually consistent
+  const dashLen = 3 / stageScale;
+  const gapLen = 5 / stageScale;
+
   const lines: React.ReactNode[] = [];
   for (let i = 0, x = xStart; i < vCount + 1; i++, x += gridSpacing) {
-    lines.push(<Line key={`v${i}`} points={[x, y0, x, y1]} stroke="#d0d0d0" strokeWidth={lineWidth} />);
+    lines.push(<Line key={`v${i}`} points={[x, y0, x, y1]} stroke="rgba(80,120,200,0.3)" strokeWidth={lineWidth} dash={[dashLen, gapLen]} />);
   }
   for (let i = 0, y = yStart; i < hCount + 1; i++, y += gridSpacing) {
-    lines.push(<Line key={`h${i}`} points={[x0, y, x1, y]} stroke="#d0d0d0" strokeWidth={lineWidth} />);
+    lines.push(<Line key={`h${i}`} points={[x0, y, x1, y]} stroke="rgba(80,120,200,0.3)" strokeWidth={lineWidth} dash={[dashLen, gapLen]} />);
   }
 
   return <Layer listening={false}>{lines}</Layer>;
