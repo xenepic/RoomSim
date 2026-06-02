@@ -5,6 +5,7 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type { CalibrationMode } from '../../App';
 import { FloorplanLayer } from './FloorplanLayer';
 import { FurnitureLayer } from './FurnitureLayer';
+import { GridLayer } from './GridLayer';
 import { RulerOverlay } from './RulerOverlay';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -26,6 +27,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
 
   const selectFurniture = useAppStore((s) => s.selectFurniture);
   const scale = useAppStore((s) => s.project.scale);
+  const snapEnabled = useAppStore((s) => s.project.snapGrid.enabled);
 
   // Keep Stage size in sync with its container element
   useEffect(() => {
@@ -86,6 +88,9 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
         onTap={handleStageClick}
         onDragEnd={handleStageDragEnd}
       >
+        {snapEnabled && (
+          <GridLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} />
+        )}
         <FloorplanLayer />
         <FurnitureLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} />
         {calibrationMode && (
