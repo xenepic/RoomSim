@@ -16,7 +16,7 @@ button {
   font-size: 13px;
 }
 button:hover { background: #f0f0f0; }
-button:disabled { opacity: 0.5; cursor: default; }
+button:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
 
 input[type="text"], input[type="number"], select {
   border: 1px solid #ccc;
