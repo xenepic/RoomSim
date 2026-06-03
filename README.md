@@ -2,6 +2,8 @@
 
 賃貸物件の間取りシミュレーター。間取り画像を背景に家具を配置・サイズ調整・回転できるブラウザアプリです。
 
+**公開URL:** https://room-sim.vercel.app/
+
 ## 機能
 
 - 間取り画像のアップロード
@@ -63,17 +65,6 @@ vercel --prod
 ### 以降のデプロイ
 
 GitHub リポジトリと連携済みの場合、`main` ブランチへの push で自動デプロイされます。
-
-## GitHub へのプッシュ
-
-```bash
-# リモートリポジトリを追加（GitHub で先にリポジトリを作成しておく）
-git remote add origin https://github.com/<ユーザー名>/<リポジトリ名>.git
-
-# main ブランチへプッシュ
-git branch -M main
-git push -u origin main
-```
 
 ## 技術スタック
 
