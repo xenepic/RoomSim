@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "konva": "^9.3.18",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
