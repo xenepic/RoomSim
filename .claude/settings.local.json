@@ -9,7 +9,12 @@
       "Bash(echo \"node_modules/\")",
       "Bash(echo \".superpowers/\")",
       "Bash(echo \"dist/\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(npm test *)",
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "mcp__plugin_everything-claude-code_playwright__browser_navigate",
+      "Bash(npx tsc *)"
     ]
   }
 }
