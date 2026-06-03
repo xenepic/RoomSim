@@ -8,6 +8,7 @@ const DEFAULT_PLACE_CM = 50;
 
 export function FurniturePresetList() {
   const addFurniture = useAppStore((s) => s.addFurniture);
+  const hasFloorplan = useAppStore((s) => !!s.project.floorplan);
   const hasScale = useAppStore((s) => !!s.project.scale);
   const [customName, setCustomName] = useState('');
   const [customW, setCustomW] = useState('100');
@@ -65,6 +66,12 @@ export function FurniturePresetList() {
     <div className="panel-section">
       <h3>家具を追加</h3>
 
+      {!hasFloorplan && (
+        <p style={{ fontSize: 11, color: '#aaa', margin: '0 0 8px' }}>
+          先に間取り画像をアップロードしてください
+        </p>
+      )}
+
       {PRESET_CATEGORIES.map((category) => (
         <div key={category} style={{ marginBottom: 6 }}>
           <div style={{ fontSize: 11, color: '#999', marginBottom: 3 }}>{category}</div>
@@ -73,6 +80,7 @@ export function FurniturePresetList() {
               <button
                 key={preset.id}
                 onClick={() => handleAddPreset(preset)}
+                disabled={!hasFloorplan}
                 style={{ fontSize: 11, padding: '3px 6px', background: preset.color, borderColor: '#bbb' }}
                 title={`${preset.widthCm}×${preset.depthCm}cm`}
               >
@@ -87,19 +95,19 @@ export function FurniturePresetList() {
         <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>カスタム</div>
         <div style={{ marginBottom: 4 }}>
           <label>名前</label>
-          <input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="例: 本棚" />
+          <input value={customName} onChange={(e) => setCustomName(e.target.value)} placeholder="例: 本棚" disabled={!hasFloorplan} />
         </div>
         <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
           <div style={{ flex: 1 }}>
             <label>幅 (cm)</label>
-            <input type="number" value={customW} min="1" onChange={(e) => setCustomW(e.target.value)} />
+            <input type="number" value={customW} min="1" onChange={(e) => setCustomW(e.target.value)} disabled={!hasFloorplan} />
           </div>
           <div style={{ flex: 1 }}>
             <label>奥行 (cm)</label>
-            <input type="number" value={customD} min="1" onChange={(e) => setCustomD(e.target.value)} />
+            <input type="number" value={customD} min="1" onChange={(e) => setCustomD(e.target.value)} disabled={!hasFloorplan} />
           </div>
         </div>
-        <button onClick={handleAddCustom} disabled={!customName.trim()} style={{ width: '100%' }}>
+        <button onClick={handleAddCustom} disabled={!hasFloorplan || !customName.trim()} style={{ width: '100%' }}>
           ＋ 追加
         </button>
       </div>
