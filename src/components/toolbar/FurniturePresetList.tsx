@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { FURNITURE_PRESETS, PRESET_CATEGORIES } from '../../data/furniturePresets';
 import type { FurniturePreset } from '../../types';
@@ -10,11 +10,18 @@ export function FurniturePresetList() {
   const addFurniture = useAppStore((s) => s.addFurniture);
   const hasFloorplan = useAppStore((s) => !!s.project.floorplan);
   const hasScale = useAppStore((s) => !!s.project.scale);
+  const projectId = useAppStore((s) => s.project.id);
   const [customName, setCustomName] = useState('');
   const [customW, setCustomW] = useState('100');
   const [customD, setCustomD] = useState('80');
   // Counter used as key — increment each trigger to force re-mount and restart animation
   const [toastRev, setToastRev] = useState(0);
+
+  useEffect(() => {
+    setCustomName('');
+    setCustomW('100');
+    setCustomD('80');
+  }, [projectId]);
 
   const warnIfNoScale = () => {
     if (!hasScale) setToastRev((r) => r + 1);
