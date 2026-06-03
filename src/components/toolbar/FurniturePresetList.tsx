@@ -8,9 +8,18 @@ const DEFAULT_PLACE_CM = 50;
 
 export function FurniturePresetList() {
   const addFurniture = useAppStore((s) => s.addFurniture);
+  const hasScale = useAppStore((s) => !!s.project.scale);
   const [customName, setCustomName] = useState('');
   const [customW, setCustomW] = useState('100');
   const [customD, setCustomD] = useState('80');
+  const [toast, setToast] = useState(false);
+
+  const warnIfNoScale = () => {
+    if (!hasScale) {
+      setToast(true);
+      setTimeout(() => setToast(false), 3000);
+    }
+  };
 
   const handleAddPreset = (preset: FurniturePreset) => {
     addFurniture({
@@ -23,6 +32,7 @@ export function FurniturePresetList() {
       color: preset.color,
       presetId: preset.id,
     });
+    warnIfNoScale();
   };
 
   const handleAddCustom = () => {
@@ -39,9 +49,29 @@ export function FurniturePresetList() {
       color: '#E8DAEF',
     });
     setCustomName('');
+    warnIfNoScale();
   };
 
   return (
+    <>
+    {toast && (
+      <div style={{
+        position: 'fixed',
+        bottom: 32,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(180,100,0,0.88)',
+        color: '#fff',
+        padding: '8px 22px',
+        borderRadius: 20,
+        fontSize: 13,
+        zIndex: 9999,
+        pointerEvents: 'none',
+        whiteSpace: 'nowrap',
+      }}>
+        縮尺未設定のため、見取り図と家具のサイズ比が合わない場合があります
+      </div>
+    )}
     <div className="panel-section">
       <h3>家具を追加</h3>
 
@@ -84,5 +114,6 @@ export function FurniturePresetList() {
         </button>
       </div>
     </div>
+    </>
   );
 }
