@@ -3,7 +3,6 @@ import { ImageUploader } from './ImageUploader';
 import { FurniturePresetList } from './FurniturePresetList';
 import { ScaleCalibrator } from './ScaleCalibrator';
 import { SnapGridToggle } from './SnapGridToggle';
-import { ProjectActions } from './ProjectActions';
 
 interface ToolbarProps {
   calibrationMode: CalibrationMode;
@@ -31,7 +30,6 @@ export function Toolbar({
         onScaleSet={onScaleSet}
       />
       <SnapGridToggle />
-      <ProjectActions />
     </>
   );
 }

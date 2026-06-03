@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './App.css';
 import { useAppStore } from './store/useAppStore';
 import { Toolbar } from './components/toolbar/Toolbar';
+import { ProjectActions } from './components/toolbar/ProjectActions';
 import { CanvasArea } from './components/canvas/CanvasArea';
 import { PropertiesPanel } from './components/properties/PropertiesPanel';
 
@@ -85,14 +86,17 @@ function App() {
   return (
     <div className="app-layout">
       <div className="left-panel">
-        <Toolbar
-          calibrationMode={calibrationMode}
-          rulerPoints={rulerPoints}
-          tatamiRect={tatamiRect}
-          onStartCalibration={startCalibration}
-          onCancelCalibration={cancelCalibration}
-          onScaleSet={handleScaleSet}
-        />
+        <div className="left-panel-scroll">
+          <Toolbar
+            calibrationMode={calibrationMode}
+            rulerPoints={rulerPoints}
+            tatamiRect={tatamiRect}
+            onStartCalibration={startCalibration}
+            onCancelCalibration={cancelCalibration}
+            onScaleSet={handleScaleSet}
+          />
+        </div>
+        <ProjectActions />
       </div>
       <div className="canvas-container">
         <CanvasArea

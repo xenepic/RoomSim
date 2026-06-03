@@ -10,9 +10,14 @@
   min-width: 220px;
   background: #fafafa;
   border-right: 1px solid #ddd;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.left-panel-scroll {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .canvas-container {
