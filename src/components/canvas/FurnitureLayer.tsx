@@ -53,6 +53,8 @@ export function FurnitureLayer(_props: FurnitureLayerProps) {
         ref={trRef}
         rotateEnabled={true}
         keepRatio={false}
+        rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+        rotationSnapTolerance={10}
         boundBoxFunc={(oldBox, newBox) => {
           // Prevent shrinking furniture below 10px
           if (newBox.width < 10 || newBox.height < 10) return oldBox;

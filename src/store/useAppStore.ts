@@ -6,7 +6,7 @@ const STORAGE_KEY = 'roomsim-project';
 const makeInitialProject = (): Project => ({
   id: crypto.randomUUID(),
   name: '新しいプロジェクト',
-  snapGrid: { enabled: false, sizeCm: 10 },
+  snapGrid: { enabled: false, sizeCm: 50 },
   furniture: [],
 });
 

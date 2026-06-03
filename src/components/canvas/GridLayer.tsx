@@ -35,6 +35,11 @@ export function GridLayer({ stageScale, stagePos, canvasSize }: GridLayerProps) 
     return <Layer listening={false} />;
   }
 
+  // Also skip if lines would be too close together on screen to be visible
+  if (gridSpacing * stageScale < 15) {
+    return <Layer listening={false} />;
+  }
+
   // Keep stroke at 1 CSS-pixel regardless of zoom level
   const lineWidth = 1 / stageScale;
 
