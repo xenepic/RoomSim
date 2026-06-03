@@ -1,4 +1,6 @@
 import { useRef, useLayoutEffect } from 'react';
+
+const SNAP_THRESHOLD_PX = 20;
 import { Group, Rect, Text } from 'react-konva';
 import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
@@ -9,6 +11,7 @@ interface FurnitureShapeProps {
   item: FurnitureItem;
   scale: ScaleSetting | undefined;
   snapGrid: { enabled: boolean; sizeCm: number };
+  stageScale: number;
   isSelected: boolean;
   onSelect: () => void;
   onChange: (changes: Partial<FurnitureItem>) => void;
@@ -17,7 +20,7 @@ interface FurnitureShapeProps {
 }
 
 export function FurnitureShape({
-  item, scale, snapGrid, isSelected, onSelect, onChange, onRef,
+  item, scale, snapGrid, stageScale, isSelected, onSelect, onChange, onRef,
 }: FurnitureShapeProps) {
   const ppc = getPixelsPerCm(scale);
   const widthPx = item.widthCm * ppc;
@@ -35,18 +38,34 @@ export function FurnitureShape({
   }, [item.id, onRef]);
 
   const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
-    let newXCm = e.target.x() / ppc;
-    let newYCm = e.target.y() / ppc;
+    const rawXCm = e.target.x() / ppc;
+    const rawYCm = e.target.y() / ppc;
 
     if (snapGrid.enabled) {
-      newXCm = snapToCm(newXCm, snapGrid.sizeCm);
-      newYCm = snapToCm(newYCm, snapGrid.sizeCm);
-      // Update node position immediately to avoid visual jump on re-render
+      const halfW = item.widthCm / 2;
+      const halfD = item.depthCm / 2;
+      const sz    = snapGrid.sizeCm;
+      const thresholdCm = SNAP_THRESHOLD_PX / (ppc * stageScale);
+
+      // Snap the nearest edge (left vs right, top vs bottom) only when within threshold
+      const snapNearest = (center: number, half: number) => {
+        const s1 = snapToCm(center - half, sz);
+        const s2 = snapToCm(center + half, sz);
+        const d1 = Math.abs(center - half - s1);
+        const d2 = Math.abs(center + half - s2);
+        if (d1 <= d2 && d1 <= thresholdCm) return s1 + half;
+        if (d2 <  d1 && d2 <= thresholdCm) return s2 - half;
+        return center;
+      };
+
+      const newXCm = snapNearest(rawXCm, halfW);
+      const newYCm = snapNearest(rawYCm, halfD);
       e.target.x(newXCm * ppc);
       e.target.y(newYCm * ppc);
+      onChange({ xCm: newXCm, yCm: newYCm });
+    } else {
+      onChange({ xCm: rawXCm, yCm: rawYCm });
     }
-
-    onChange({ xCm: newXCm, yCm: newYCm });
   };
 
   const handleTransformEnd = () => {

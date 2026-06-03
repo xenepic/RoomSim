@@ -10,7 +10,7 @@ interface FurnitureLayerProps {
   canvasSize: { width: number; height: number };
 }
 
-export function FurnitureLayer(_props: FurnitureLayerProps) {
+export function FurnitureLayer({ stageScale }: FurnitureLayerProps) {
   const furniture = useAppStore((s) => s.project.furniture);
   const scale = useAppStore((s) => s.project.scale);
   const snapGrid = useAppStore((s) => s.project.snapGrid);
@@ -43,6 +43,7 @@ export function FurnitureLayer(_props: FurnitureLayerProps) {
           item={item}
           scale={scale}
           snapGrid={snapGrid}
+          stageScale={stageScale}
           isSelected={item.id === selectedId}
           onSelect={() => selectFurniture(item.id)}
           onChange={(changes) => updateFurniture(item.id, changes)}

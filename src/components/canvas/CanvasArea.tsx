@@ -5,9 +5,9 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import type { CalibrationMode } from '../../App';
 import { FloorplanLayer } from './FloorplanLayer';
 import { FurnitureLayer } from './FurnitureLayer';
-import { GridLayer } from './GridLayer';
 import { RulerOverlay } from './RulerOverlay';
 import { useAppStore } from '../../store/useAppStore';
+import { getPixelsPerCm } from '../../utils/scaleUtils';
 
 interface CanvasAreaProps {
   calibrationMode: CalibrationMode;
@@ -27,7 +27,16 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
 
   const selectFurniture = useAppStore((s) => s.selectFurniture);
   const scale = useAppStore((s) => s.project.scale);
-  const snapEnabled = useAppStore((s) => s.project.snapGrid.enabled);
+  const snapGrid = useAppStore((s) => s.project.snapGrid);
+
+  const ppc = getPixelsPerCm(scale);
+  const gridSpacingPx = snapGrid.sizeCm * ppc * stageScale;
+  const showGrid = snapGrid.enabled && gridSpacingPx >= 15;
+  const bgOffsetX = ((stagePos.x % gridSpacingPx) + gridSpacingPx) % gridSpacingPx;
+  const bgOffsetY = ((stagePos.y % gridSpacingPx) + gridSpacingPx) % gridSpacingPx;
+  // SVG data URL: L-shaped dashed path tiled to form a full grid
+  const gridSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='${gridSpacingPx}' height='${gridSpacingPx}'><path d='M ${gridSpacingPx} 0 L 0 0 0 ${gridSpacingPx}' fill='none' stroke='rgba(80,120,200,0.3)' stroke-width='1' stroke-dasharray='3,5'/></svg>`;
+  const gridBg = `url("data:image/svg+xml,${encodeURIComponent(gridSvg)}")`;
 
   // Keep Stage size in sync with its container element
   useEffect(() => {
@@ -74,7 +83,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
   };
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Stage
         width={size.width}
         height={size.height}
@@ -89,9 +98,6 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
         onDragEnd={handleStageDragEnd}
       >
         <FloorplanLayer />
-        {snapEnabled && (
-          <GridLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} />
-        )}
         <FurnitureLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} />
         {calibrationMode && (
           <RulerOverlay
@@ -101,6 +107,19 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect }: Canv
           />
         )}
       </Stage>
+
+      {showGrid && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            backgroundImage: gridBg,
+            backgroundSize: `${gridSpacingPx}px ${gridSpacingPx}px`,
+            backgroundPosition: `${bgOffsetX}px ${bgOffsetY}px`,
+          }}
+        />
+      )}
 
       <div className="canvas-status">
         {scale
