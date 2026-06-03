@@ -43,6 +43,29 @@
   margin-bottom: 8px;
 }
 
+/* Toast: fade-in → hold → fade-out in one animation pass */
+@keyframes toast-show {
+  0%   { opacity: 0; }
+  10%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  padding: 8px 22px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 9999;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: toast-show 3s ease forwards;
+}
+
 /* Status bar overlaid on bottom-left of canvas */
 .canvas-status {
   position: absolute;

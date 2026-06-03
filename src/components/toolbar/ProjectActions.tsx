@@ -5,11 +5,11 @@ export function ProjectActions() {
   const saveProject = useAppStore((s) => s.saveProject);
   const loadProject = useAppStore((s) => s.loadProject);
   const resetProject = useAppStore((s) => s.resetProject);
-  const [toast, setToast] = useState<string | null>(null);
+  // {msg, rev} — rev increments on each trigger to force re-mount and restart animation
+  const [toast, setToast] = useState<{ msg: string; rev: number } | null>(null);
 
   const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2000);
+    setToast((t) => ({ msg, rev: (t?.rev ?? 0) + 1 }));
   };
 
   const handleSave = () => { saveProject(); showToast('保存しました'); };
@@ -33,21 +33,13 @@ export function ProjectActions() {
       </div>
 
       {toast && (
-        <div style={{
-          position: 'fixed',
-          bottom: 32,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(30,30,30,0.82)',
-          color: '#fff',
-          padding: '8px 22px',
-          borderRadius: 20,
-          fontSize: 13,
-          zIndex: 9999,
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap',
-        }}>
-          {toast}
+        <div
+          key={toast.rev}
+          className="toast"
+          style={{ background: 'rgba(30,30,30,0.82)' }}
+          onAnimationEnd={() => setToast(null)}
+        >
+          {toast.msg}
         </div>
       )}
     </>
