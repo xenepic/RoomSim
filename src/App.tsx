@@ -97,6 +97,14 @@ function App() {
           />
         </div>
         <ProjectActions />
+        <a
+          className="portal-link"
+          href="https://shiodamari.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          ひとでの潮だまり
+        </a>
       </div>
       <div className="canvas-container">
         <CanvasArea
