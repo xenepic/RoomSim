@@ -9,6 +9,7 @@ export function FurnitureEditor({ item }: FurnitureEditorProps) {
   const updateFurniture = useAppStore((s) => s.updateFurniture);
   const deleteFurniture = useAppStore((s) => s.deleteFurniture);
   const selectFurniture = useAppStore((s) => s.selectFurniture);
+  const duplicateFurniture = useAppStore((s) => s.duplicateFurniture);
 
   const update = (changes: Partial<FurnitureItem>) => updateFurniture(item.id, changes);
 
@@ -66,9 +67,14 @@ export function FurnitureEditor({ item }: FurnitureEditorProps) {
         中心位置: ({Math.round(item.xCm)}, {Math.round(item.yCm)}) cm
       </div>
 
-      <button onClick={handleDelete} style={{ color: '#c0392b', borderColor: '#e74c3c' }}>
-        削除
-      </button>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => duplicateFurniture(item.id)} style={{ flex: 1 }} title="Ctrl+C">
+          複製
+        </button>
+        <button onClick={handleDelete} style={{ flex: 1, color: '#c0392b', borderColor: '#e74c3c' }} title="Delete">
+          削除
+        </button>
+      </div>
     </div>
   );
 }

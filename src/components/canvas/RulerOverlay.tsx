@@ -16,32 +16,33 @@ export function RulerOverlay({ mode, onRulerPoint, onTatamiRect }: RulerOverlayP
 
   // Transform a pointer position from screen coordinates to world (layer) coordinates,
   // accounting for the Stage's current zoom and pan transform.
-  const toWorldPoint = (e: KonvaEventObject<MouseEvent>): { x: number; y: number } => {
+  // Pointer events so that both mouse and touch work.
+  const toWorldPoint = (e: KonvaEventObject<PointerEvent>): { x: number; y: number } => {
     const stage = e.target.getStage()!;
     const pointer = stage.getPointerPosition()!;
     const transform = stage.getAbsoluteTransform().copy().invert();
     return transform.point(pointer);
   };
 
-  const handleRulerClick = (e: KonvaEventObject<MouseEvent>) => {
+  const handleRulerClick = (e: KonvaEventObject<PointerEvent>) => {
     const point = toWorldPoint(e);
     const next = [...rulerPoints, point].slice(0, 2);
     setRulerPoints(next);
     onRulerPoint(point);
   };
 
-  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
+  const handleMouseDown = (e: KonvaEventObject<PointerEvent>) => {
     const point = toWorldPoint(e);
     setDragStart(point);
     setDragCurrent(point);
   };
 
-  const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
+  const handleMouseMove = (e: KonvaEventObject<PointerEvent>) => {
     if (!dragStart) return;
     setDragCurrent(toWorldPoint(e));
   };
 
-  const handleMouseUp = (e: KonvaEventObject<MouseEvent>) => {
+  const handleMouseUp = (e: KonvaEventObject<PointerEvent>) => {
     if (!dragStart) return;
     const end = toWorldPoint(e);
     const rect = {
@@ -59,15 +60,15 @@ export function RulerOverlay({ mode, onRulerPoint, onTatamiRect }: RulerOverlayP
     mode === 'ruler'
       ? rulerPoints.length === 0 ? '1点目をクリック'
       : rulerPoints.length === 1 ? '2点目をクリック'
-      : '左パネルで距離を入力してください'
+      : '縮尺設定パネルで距離を入力してください'
       : '部屋の矩形をドラッグで選択してください';
 
   return (
     <Layer
-      onClick={mode === 'ruler' ? handleRulerClick : undefined}
-      onMouseDown={mode === 'tatami' ? handleMouseDown : undefined}
-      onMouseMove={mode === 'tatami' ? handleMouseMove : undefined}
-      onMouseUp={mode === 'tatami' ? handleMouseUp : undefined}
+      onPointerClick={mode === 'ruler' ? handleRulerClick : undefined}
+      onPointerDown={mode === 'tatami' ? handleMouseDown : undefined}
+      onPointerMove={mode === 'tatami' ? handleMouseMove : undefined}
+      onPointerUp={mode === 'tatami' ? handleMouseUp : undefined}
     >
       {/* Large transparent rect to capture events over the whole canvas */}
       <Rect x={-50000} y={-50000} width={100000} height={100000} fill="transparent" />

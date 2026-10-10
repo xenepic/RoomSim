@@ -11,6 +11,7 @@ export function FurniturePresetList() {
   const hasFloorplan = useAppStore((s) => !!s.project.floorplan);
   const hasScale = useAppStore((s) => !!s.project.scale);
   const projectId = useAppStore((s) => s.project.id);
+  const viewCenterCm = useAppStore((s) => s.viewCenterCm);
   const [customName, setCustomName] = useState('');
   const [customW, setCustomW] = useState('100');
   const [customD, setCustomD] = useState('80');
@@ -23,6 +24,10 @@ export function FurniturePresetList() {
     setCustomD('80');
   }, [projectId]);
 
+  // New furniture appears at the center of the visible canvas
+  const placeX = viewCenterCm ? Math.round(viewCenterCm.x) : DEFAULT_PLACE_CM;
+  const placeY = viewCenterCm ? Math.round(viewCenterCm.y) : DEFAULT_PLACE_CM;
+
   const warnIfNoScale = () => {
     if (!hasScale) setToastRev((r) => r + 1);
   };
@@ -30,8 +35,8 @@ export function FurniturePresetList() {
   const handleAddPreset = (preset: FurniturePreset) => {
     addFurniture({
       name: preset.name,
-      xCm: DEFAULT_PLACE_CM,
-      yCm: DEFAULT_PLACE_CM,
+      xCm: placeX,
+      yCm: placeY,
       widthCm: preset.widthCm,
       depthCm: preset.depthCm,
       rotation: 0,
@@ -47,8 +52,8 @@ export function FurniturePresetList() {
     if (!customName.trim() || isNaN(w) || w <= 0 || isNaN(d) || d <= 0) return;
     addFurniture({
       name: customName.trim(),
-      xCm: DEFAULT_PLACE_CM,
-      yCm: DEFAULT_PLACE_CM,
+      xCm: placeX,
+      yCm: placeY,
       widthCm: w,
       depthCm: d,
       rotation: 0,

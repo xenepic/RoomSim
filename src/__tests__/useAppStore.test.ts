@@ -45,6 +45,27 @@ describe('deleteFurniture', () => {
   });
 });
 
+describe('duplicateFurniture', () => {
+  test('adds an offset copy and selects it', () => {
+    useAppStore.getState().addFurniture({
+      name: 'C', xCm: 100, yCm: 50, widthCm: 120, depthCm: 60, rotation: 90, color: '#abc',
+    });
+    const id = useAppStore.getState().project.furniture[0].id;
+    useAppStore.getState().duplicateFurniture(id);
+    const { project, selectedId } = useAppStore.getState();
+    expect(project.furniture).toHaveLength(2);
+    const copy = project.furniture[1];
+    expect(copy.id).not.toBe(id);
+    expect(copy).toMatchObject({ name: 'C', xCm: 110, yCm: 60, widthCm: 120, depthCm: 60, rotation: 90, color: '#abc' });
+    expect(selectedId).toBe(copy.id);
+  });
+
+  test('does nothing for an unknown id', () => {
+    useAppStore.getState().duplicateFurniture('missing');
+    expect(useAppStore.getState().project.furniture).toHaveLength(0);
+  });
+});
+
 describe('saveProject / loadProject', () => {
   test('round-trips project data through localStorage', () => {
     useAppStore.getState().addFurniture({

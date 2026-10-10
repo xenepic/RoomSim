@@ -1,6 +1,7 @@
 .app-layout {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* iOS Safari: exclude the dynamic address bar */
   width: 100vw;
   overflow: hidden;
 }
@@ -90,4 +91,59 @@
   font-size: 11px;
   pointer-events: none;
   user-select: none;
+}
+
+/* Mobile layout (toggled by App via useMediaQuery): full-screen canvas,
+   in-flow bottom sheet and tab bar. The sheet takes space from the canvas
+   instead of overlapping it, so the Stage resizes via ResizeObserver. */
+.app-layout.is-mobile {
+  flex-direction: column;
+}
+
+.is-mobile .canvas-container {
+  min-height: 0;
+  touch-action: none; /* pinch/pan belong to the canvas, not page zoom/scroll */
+}
+
+.mobile-sheet {
+  flex: none;
+  max-height: 45dvh;
+  overflow-y: auto;
+  background: #fafafa;
+  border-top: 1px solid #ccc;
+}
+
+.mobile-tabs {
+  flex: none;
+  display: flex;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-tabs button {
+  flex: 1;
+  min-height: 48px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: 13px;
+  color: #666;
+}
+.mobile-tabs button.active {
+  color: #2563EB;
+  font-weight: 600;
+  box-shadow: inset 0 2px 0 #2563EB;
+}
+
+.is-mobile .portal-link {
+  display: block;
+  padding: 10px 12px;
+}
+
+.is-mobile .toast {
+  bottom: 64px; /* keep clear of the tab bar */
+  white-space: normal;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  text-align: center;
 }

@@ -13,7 +13,8 @@
 
 ```
 src/
-  App.tsx                          レイアウト、Delete/Ctrl+C キーボードショートカット
+  App.tsx                          レイアウト（PC 3カラム / スマホ タブ+シート）、Delete/Ctrl+C
+  hooks/useMediaQuery.ts           matchMedia 購読フック
   store/useAppStore.ts             Zustand store（プロジェクト全データ）
   types.ts                         型定義（FurnitureItem, ScaleSetting 等）
   utils/scaleUtils.ts              px/cm 変換・snapToCm・縮尺推定
@@ -32,6 +33,8 @@ src/
       ProjectActions.tsx           保存・読込・リセット
     properties/
       PropertiesPanel.tsx          右パネル（選択家具のプロパティ編集）
+    mobile/
+      MobileTabBar.tsx             スマホ用下部タブ（画像/家具/縮尺/編集/その他）
 ```
 
 ## State Model
@@ -47,6 +50,7 @@ project: {
   snapGrid: { enabled: boolean; sizeCm: number }
 }
 selectedId: string | null
+viewCenterCm: { x, y } | null  // 表示中キャンバス中心のワールド座標（非保存）。新規家具の配置位置
 ```
 
 保存先: `localStorage`（`saveProject` / `loadProject`）
@@ -93,6 +97,21 @@ Konva のマトリクス演算で `119.99999999997` のようなドリフトが�
 ### 回転スナップ
 
 Konva Transformer の `rotationSnaps={[0,45,90,135,180,225,270,315]}` + `rotationSnapTolerance={10}` で実装。
+
+### スマホレイアウト
+
+- `useMediaQuery('(max-width: 767px), (max-height: 500px)')` で切替（横向きスマホも対象）
+- キャンバス全画面 + 下部タブ + シート。シートはオーバーレイではなく**フロー内**に置き、キャンバスを縮める（ResizeObserver で Stage が追従）
+- App の子要素は常に固定スロット（非表示時は `null`）にして、ブレークポイント跨ぎで CanvasArea が再マウントされない（ズーム/パン保持）
+- 編集シートは**キャンバス上で家具をタップしたときだけ**自動で開く（`onFurnitureTap`）。追加時は家具シートのまま連続追加できる。選択解除で編集シートは閉じる
+
+### タッチ操作
+
+- ピンチズームは Stage イベントではなく**コンテナ div のネイティブ touchmove**で処理。Konva はドラッグ中にヒット判定を止めるため、家具上で始まったピンチを Stage イベントでは拾えない
+- ピンチ開始時に `DD._dragElements` の全ドラッグを `stopDrag()`。ジェスチャ中の scale/pos は ref に蓄積（React state は touchmove に遅れるため）
+- RulerOverlay は `onPointer*` イベント（Konva の mouse 系イベントはタッチで発火しない）
+- `(pointer: coarse)` では Transformer の `anchorSize` を 20 に拡大
+- `button:hover` は `@media (hover: hover)` 内のみ（タッチでホバーが残るため）
 
 ## Canvas Layer Order
 

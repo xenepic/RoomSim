@@ -52,12 +52,15 @@ export type FurniturePreset = {
 export type AppState = {
   project: Project;
   selectedId: string | null;
+  // World-space center of the visible canvas (not persisted); null until the canvas mounts
+  viewCenterCm: { x: number; y: number } | null;
 };
 
 export type AppStore = AppState & {
   addFurniture: (item: Omit<FurnitureItem, 'id'>) => void;
   updateFurniture: (id: string, changes: Partial<FurnitureItem>) => void;
   deleteFurniture: (id: string) => void;
+  duplicateFurniture: (id: string) => void;
   selectFurniture: (id: string | null) => void;
   setFloorplan: (image: FloorplanImage) => void;
   setScale: (scale: ScaleSetting) => void;
@@ -65,4 +68,5 @@ export type AppStore = AppState & {
   saveProject: () => void;
   loadProject: () => void;
   resetProject: () => void;
+  setViewCenterCm: (center: { x: number; y: number }) => void;
 };

@@ -15,10 +15,11 @@ button {
   padding: 5px 10px;
   font-size: 13px;
 }
-button:hover { background: #f0f0f0; }
+/* Touch devices keep :hover after a tap, so only apply it where hover exists */
+@media (hover: hover) { button:hover { background: #f0f0f0; } }
 button:disabled { opacity: 0.5; cursor: default; pointer-events: none; }
 
-input[type="text"], input[type="number"], select {
+input:not([type]), input[type="text"], input[type="number"], select {
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 4px 7px;

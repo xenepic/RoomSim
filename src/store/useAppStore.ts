@@ -13,6 +13,7 @@ const makeInitialProject = (): Project => ({
 export const useAppStore = create<AppStore>((set, get) => ({
   project: makeInitialProject(),
   selectedId: null,
+  viewCenterCm: null,
 
   addFurniture: (item) => {
     const newItem: FurnitureItem = { ...item, id: crypto.randomUUID() };
@@ -41,6 +42,22 @@ export const useAppStore = create<AppStore>((set, get) => ({
       },
       selectedId: state.selectedId === id ? null : state.selectedId,
     }));
+  },
+
+  // Copy offset by 10cm so the duplicate is visibly separate; the copy becomes selected
+  duplicateFurniture: (id) => {
+    const item = get().project.furniture.find((f) => f.id === id);
+    if (!item) return;
+    get().addFurniture({
+      name: item.name,
+      xCm: item.xCm + 10,
+      yCm: item.yCm + 10,
+      widthCm: item.widthCm,
+      depthCm: item.depthCm,
+      rotation: item.rotation,
+      color: item.color,
+      presetId: item.presetId,
+    });
   },
 
   selectFurniture: (id) => set({ selectedId: id }),
@@ -84,4 +101,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
   resetProject: () => {
     set({ project: makeInitialProject(), selectedId: null });
   },
+
+  setViewCenterCm: (center) => set({ viewCenterCm: center }),
 }));
