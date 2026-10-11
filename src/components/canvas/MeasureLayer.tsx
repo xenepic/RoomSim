@@ -13,6 +13,10 @@ const LABEL_OFFSET_PX = 14;   // label distance from the line, in screen px
 const TICK_PX = 7;
 const MEMO_PREVIEW_CHARS = 14;
 
+// Shapes with both fill and stroke set perfectDrawEnabled={false}: the layer is
+// translucent in furniture mode, and Konva would otherwise draw each of them through
+// a full-stage offscreen canvas on every frame (very slow pan/zoom on tablets).
+
 // Labels and pins are drawn at a constant on-screen size: every on-screen length
 // below is divided by stageScale (world units = floorplan image px).
 
@@ -40,6 +44,7 @@ function TextBadge({ text, color, bold }: { text: string; color: string; bold?: 
       <Rect
         x={-w / 2 - 5} y={-10} width={w + 10} height={20}
         fill="#fff" opacity={0.92} stroke={color} strokeWidth={1} cornerRadius={4}
+        perfectDrawEnabled={false}
       />
       <Text
         x={-w / 2} y={-7} text={text}
@@ -115,6 +120,7 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
         key={end}
         x={d[end].x} y={d[end].y}
         radius={9 * k} fill="#fff" stroke={COLOR_SELECTED} strokeWidth={2.5 * k}
+        perfectDrawEnabled={false}
         hitStrokeWidth={30 * k}
         draggable
         onDragStart={() => pushMeasureUndo()}
@@ -142,6 +148,7 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
           radius={12} fill={COLOR_MEMO}
           stroke={selected ? COLOR_SELECTED : '#fff'} strokeWidth={selected ? 3 : 2}
           hitStrokeWidth={16}
+          perfectDrawEnabled={false}
           shadowColor="rgba(0,0,0,0.3)" shadowBlur={3}
         />
         <Text
@@ -167,7 +174,7 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
       {interactive && selectedDim && renderHandles(selectedDim)}
       {memos.map(renderMemo)}
       {interactive && draft && (
-        <Circle x={draft.x} y={draft.y} radius={6 * k} fill={COLOR_SELECTED} stroke="#fff" strokeWidth={2 * k} listening={false} />
+        <Circle x={draft.x} y={draft.y} radius={6 * k} fill={COLOR_SELECTED} stroke="#fff" strokeWidth={2 * k} listening={false} perfectDrawEnabled={false} />
       )}
     </Layer>
   );

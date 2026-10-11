@@ -111,6 +111,9 @@ export function FurnitureShape({
         strokeWidth={isSelected ? 2 : 1}
         cornerRadius={3}
         opacity={0.85}
+        // Konva otherwise renders a translucent fill+stroke shape through a full-stage
+        // offscreen canvas on every frame, which makes pan/zoom very slow on tablets
+        perfectDrawEnabled={false}
         shadowColor="rgba(0,0,0,0.15)"
         shadowBlur={isSelected ? 6 : 0}
         shadowEnabled={isSelected}

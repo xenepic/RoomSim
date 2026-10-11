@@ -110,6 +110,13 @@ Konva のマトリクス演算で `119.99999999997` のようなドリフトが�
 `projectRev` を `useEffect` で監視し、変化時にカスタム名・幅・奥行のローカル state をリセット。
 `replaceProject()`（切替・読み込み・新規）と `resetProject()`（内容消去、id は維持）の両方でインクリメントされる。
 
+### perfectDrawEnabled={false}
+
+fill と stroke を両方持ち、かつ実効 opacity < 1（自身の opacity またはレイヤーの半透明）の Konva Shape は、
+既定では**ステージ全面サイズのオフスクリーン canvas 経由**で毎フレーム描画される。家具 Rect・寸法ラベル・
+メモピン等で iPad のパン/ズームが 1 フレーム ~200ms になっていたため、該当 Shape には `perfectDrawEnabled={false}` を付ける
+（新しく fill+stroke の Shape を足すときも同様）。
+
 ### 回転スナップ
 
 Konva Transformer の `rotationSnaps={[0,45,90,135,180,225,270,315]}` + `rotationSnapTolerance={10}` で実装。
