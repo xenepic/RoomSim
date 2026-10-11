@@ -39,6 +39,7 @@ src/
       FurniturePresetList.tsx      家具プリセット + カスタム追加フォーム
       ScaleCalibrator.tsx          縮尺設定UI（実測・畳数推定）
       ProjectActions.tsx           物件の切替・新規・削除・書き出し/読み込み・内容消去
+      ProjectBar.tsx               PC 左パネル下部の折りたたみバー（現在の物件名、開くと ProjectActions）。スマホは「その他」タブ
     properties/
       PropertiesPanel.tsx          右パネル（選択家具のプロパティ編集）
     measure/                       採寸モード UI（CanvasModeBar, MeasureTools, MeasureHint,

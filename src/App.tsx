@@ -3,6 +3,7 @@ import './App.css';
 import { useAppStore } from './store/useAppStore';
 import { Toolbar } from './components/toolbar/Toolbar';
 import { ProjectActions } from './components/toolbar/ProjectActions';
+import { ProjectBar } from './components/toolbar/ProjectBar';
 import { CanvasArea } from './components/canvas/CanvasArea';
 import { PropertiesPanel } from './components/properties/PropertiesPanel';
 import { ImageUploader } from './components/toolbar/ImageUploader';
@@ -178,7 +179,7 @@ function App() {
               ? <><MeasureTools /><MeasureList /></>
               : <Toolbar {...calibratorProps} />}
           </div>
-          <ProjectActions />
+          <ProjectBar />
           {portalLink}
         </div>
       )}
