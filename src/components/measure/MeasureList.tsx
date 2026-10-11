@@ -1,5 +1,7 @@
 import { useAppStore } from '../../store/useAppStore';
 import { formatCm } from '../../utils/measureUtils';
+import { getPinKind } from '../../data/pinKinds';
+import { PinIcon } from './PinIcon';
 import type { ImagePoint } from '../../types';
 
 export function MeasureList() {
@@ -13,6 +15,13 @@ export function MeasureList() {
     selectMeasure({ kind, id });
     requestViewFocus(point);
   };
+
+  // Memo numbers match the canvas (memos only; icon marks are not numbered)
+  let memoCount = 0;
+  const pins = memos.map((m) => {
+    const def = getPinKind(m.kind);
+    return { m, def, number: def.id === 'memo' ? ++memoCount : undefined };
+  });
 
   // Unmeasured lines first: on site, these are the ones still to do
   const sorted = [...dimensions].sort((x, y) => Number(x.valueCm !== null) - Number(y.valueCm !== null));
@@ -36,16 +45,18 @@ export function MeasureList() {
         ))}
       </div>
       <div className="panel-section">
-        <h3>メモ（{memos.length}）</h3>
+        <h3>マーク・メモ（{memos.length}）</h3>
         {memos.length === 0 && <p className="measure-empty">まだありません</p>}
-        {memos.map((m, i) => (
+        {pins.map(({ m, def, number }) => (
           <button
             key={m.id}
             className={`measure-row${selection?.id === m.id ? ' selected' : ''}`}
             onClick={() => focus('memo', m.id, m.pos)}
           >
-            <span className="measure-row-pin">{i + 1}</span>
-            <span className="measure-row-note">{m.text || '（未入力）'}</span>
+            <PinIcon kind={m.kind} number={number} />
+            <span className="measure-row-note">
+              {def.id === 'memo' ? (m.text || '（未入力）') : m.text ? `${def.label}：${m.text}` : def.label}
+            </span>
           </button>
         ))}
       </div>

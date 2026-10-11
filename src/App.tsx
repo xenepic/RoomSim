@@ -122,7 +122,7 @@ function App() {
     cancelCalibration();
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // In measure mode the tab picks the tool: ＋寸法 / ＋メモ place items, others select
+  // In measure mode the tab picks the tool: ＋寸法 / ＋マーク place items, others select
   const handleTabChange = (tab: MobileTab | null) => {
     setActiveTab(tab);
     if (mode !== 'measure') return;

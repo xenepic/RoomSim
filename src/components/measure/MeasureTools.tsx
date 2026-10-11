@@ -5,7 +5,7 @@ import { MeasureHint } from './MeasureHint';
 const TOOLS: Array<{ id: MeasureTool; label: string }> = [
   { id: 'select', label: '選択' },
   { id: 'dimension', label: '＋寸法線' },
-  { id: 'memo', label: '＋メモ' },
+  { id: 'memo', label: '＋マーク' },
 ];
 
 // Tool picker for the desktop left panel (mobile uses the tab bar instead)

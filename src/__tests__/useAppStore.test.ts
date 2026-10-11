@@ -131,19 +131,36 @@ describe('measure: dimensions', () => {
 });
 
 describe('measure: memos', () => {
-  test('memo tool tap adds a selected empty memo; delete removes it', () => {
+  test('memo kind: tap adds a selected empty memo; delete removes it', () => {
     const s = useAppStore.getState();
     s.setMode('measure');
-    s.setMeasureTool('memo');
+    s.setPinKind('memo');
+    expect(useAppStore.getState().measureTool).toBe('memo');
     s.placeMeasurePoint({ x: 30, y: 40 });
     const memo = useAppStore.getState().project.memos[0];
-    expect(memo).toMatchObject({ pos: { x: 30, y: 40 }, text: '' });
+    expect(memo).toMatchObject({ pos: { x: 30, y: 40 }, text: '', kind: 'memo' });
     expect(useAppStore.getState().measureSelection).toEqual({ kind: 'memo', id: memo.id });
     s.updateMemo(memo.id, { text: 'コンセント' });
     expect(useAppStore.getState().project.memos[0].text).toBe('コンセント');
     s.deleteMemo(memo.id);
     expect(useAppStore.getState().project.memos).toHaveLength(0);
     expect(useAppStore.getState().measureSelection).toBeNull();
+  });
+});
+
+describe('measure: marks', () => {
+  test('icon kind: each tap places an unselected mark so several can be placed in a row', () => {
+    const s = useAppStore.getState();
+    s.setMode('measure');
+    s.setPinKind('outlet');
+    s.placeMeasurePoint({ x: 10, y: 10 });
+    s.placeMeasurePoint({ x: 50, y: 10 });
+    const { project, measureSelection, measureTool } = useAppStore.getState();
+    expect(project.memos.map((m) => m.kind)).toEqual(['outlet', 'outlet']);
+    expect(measureSelection).toBeNull();
+    expect(measureTool).toBe('memo');
+    s.undoMeasure();
+    expect(useAppStore.getState().project.memos).toHaveLength(1);
   });
 });
 

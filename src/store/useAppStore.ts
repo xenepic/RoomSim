@@ -26,6 +26,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   measureSelection: null,
   dimensionDraft: null,
   axisSnap: true,
+  pinKind: 'outlet',
   measureUndo: [],
   lastUndoKey: null,
   viewFocusRequest: null,
@@ -125,6 +126,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setAxisSnap: (enabled) => set({ axisSnap: enabled }),
 
+  setPinKind: (kind) => set({ pinKind: kind, measureTool: 'memo', dimensionDraft: null }),
+
   selectMeasure: (selection) => set({ measureSelection: selection }),
 
   placeMeasurePoint: (point) => {
@@ -140,7 +143,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       get().addDimension(dimensionDraft, b);
       set({ dimensionDraft: null });
     } else if (measureTool === 'memo') {
-      get().addMemo(point);
+      get().addMemo(point, get().pinKind);
     } else {
       set({ measureSelection: null });
     }
@@ -176,12 +179,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }));
   },
 
-  addMemo: (pos) => {
+  // A memo opens its editor for typing; icon marks stay unselected so several
+  // can be placed in a row (mistakes are fixed with undo)
+  addMemo: (pos, kind = 'memo') => {
     get().pushMeasureUndo();
-    const memo: MemoPin = { id: crypto.randomUUID(), pos, text: '' };
+    const memo: MemoPin = { id: crypto.randomUUID(), pos, text: '', kind };
     set((state) => ({
       project: { ...state.project, memos: [...state.project.memos, memo] },
-      measureSelection: { kind: 'memo', id: memo.id },
+      measureSelection: kind === 'memo' ? { kind: 'memo', id: memo.id } : null,
     }));
     return memo.id;
   },

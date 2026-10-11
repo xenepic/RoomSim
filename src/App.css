@@ -255,19 +255,23 @@ button.chip {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.measure-row-pin {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #8E44AD;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
+.pin-kind-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+button.pin-kind {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 5px;
+  padding: 4px 10px 4px 5px;
+  min-height: 34px;
+  border-radius: 17px;
+  font-size: 12px;
+  border-color: #ddd;
 }
+button.pin-kind.active { font-weight: 600; border-width: 2px; padding: 3px 9px 3px 4px; }
 
 /* iOS Safari zooms the page when focusing inputs smaller than 16px */
 .is-mobile input,

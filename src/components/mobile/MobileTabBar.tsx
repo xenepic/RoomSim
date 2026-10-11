@@ -12,7 +12,7 @@ export const FURNITURE_TABS: Array<{ id: MobileTab; label: string }> = [
 
 export const MEASURE_TABS: Array<{ id: MobileTab; label: string }> = [
   { id: 'addDimension', label: '＋寸法' },
-  { id: 'addMemo', label: '＋メモ' },
+  { id: 'addMemo', label: '＋マーク' },
   { id: 'list', label: '一覧' },
   { id: 'project', label: 'その他' },
 ];

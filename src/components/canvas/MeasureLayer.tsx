@@ -2,12 +2,12 @@ import { Layer, Group, Line, Circle, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
 import { formatCm, snapToAxis } from '../../utils/measureUtils';
+import { getPinKind } from '../../data/pinKinds';
 import type { Dimension, ImagePoint, MemoPin } from '../../types';
 
 const COLOR_MEASURED = '#1D4ED8';
 const COLOR_UNMEASURED = '#E67E22';
 const COLOR_SELECTED = '#DC2626';
-const COLOR_MEMO = '#8E44AD';
 const LABEL_FONT_SIZE = 13;
 const LABEL_OFFSET_PX = 14;   // label distance from the line, in screen px
 const TICK_PX = 7;
@@ -129,10 +129,17 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
     );
   });
 
-  const renderMemo = (m: MemoPin, index: number) => {
+  // Memo pins are numbered among memos only; icon marks show their glyph and no text
+  const memoNumbers = new Map<string, number>();
+  memos.forEach((m) => { if (getPinKind(m.kind).id === 'memo') memoNumbers.set(m.id, memoNumbers.size + 1); });
+
+  const renderMemo = (m: MemoPin) => {
     const selected = selection?.kind === 'memo' && selection.id === m.id;
-    const firstLine = m.text.split('\n')[0];
+    const def = getPinKind(m.kind);
+    const isMemo = def.id === 'memo';
+    const firstLine = isMemo ? m.text.split('\n')[0] : '';
     const preview = firstLine.length > MEMO_PREVIEW_CHARS ? `${firstLine.slice(0, MEMO_PREVIEW_CHARS)}…` : firstLine;
+    const glyph = isMemo ? String(memoNumbers.get(m.id)) : def.glyph;
     const select = () => selectMeasure({ kind: 'memo', id: m.id });
     return (
       <Group
@@ -145,19 +152,26 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
         onDragEnd={(e) => updateMemo(m.id, { pos: e.target.position() }, { undoKey: false })}
       >
         <Circle
-          radius={12} fill={COLOR_MEMO}
+          radius={12} fill={def.color}
           stroke={selected ? COLOR_SELECTED : '#fff'} strokeWidth={selected ? 3 : 2}
           hitStrokeWidth={16}
           perfectDrawEnabled={false}
           shadowColor="rgba(0,0,0,0.3)" shadowBlur={3}
         />
-        <Text
-          x={-12} y={-6} width={24} align="center" text={String(index + 1)}
-          fontSize={12} fontStyle="bold" fill="#fff" listening={false}
-        />
+        {def.id === 'outlet' ? (
+          <>
+            <Rect x={-5} y={-4.5} width={2.6} height={9} cornerRadius={1} fill="#fff" listening={false} />
+            <Rect x={2.4} y={-4.5} width={2.6} height={9} cornerRadius={1} fill="#fff" listening={false} />
+          </>
+        ) : (
+          <Text
+            x={-12} y={glyph.length >= 3 ? -4 : glyph.length === 2 ? -5 : -6} width={24} align="center" text={glyph}
+            fontSize={glyph.length >= 3 ? 8 : glyph.length === 2 ? 10 : 12} fontStyle="bold" fill="#fff" listening={false}
+          />
+        )}
         {preview && (
           <Group x={18 + textWidth(preview, LABEL_FONT_SIZE) / 2 + 5} listening={false}>
-            <TextBadge text={preview} color={COLOR_MEMO} />
+            <TextBadge text={preview} color={def.color} />
           </Group>
         )}
       </Group>

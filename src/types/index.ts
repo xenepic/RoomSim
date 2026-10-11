@@ -41,10 +41,15 @@ export type Dimension = {
   note?: string;
 };
 
+// 'memo' = free-text note (text shown on the canvas); the others are icon marks
+// whose text is an optional note that is NOT shown on the canvas.
+export type PinKind = 'memo' | 'outlet' | 'tv' | 'lan' | 'aircon';
+
 export type MemoPin = {
   id: string;
   pos: ImagePoint;
   text: string;
+  kind?: PinKind;   // undefined = 'memo' (data saved before pin kinds existed)
 };
 
 export type Project = {
@@ -100,6 +105,7 @@ export type AppState = {
   measureSelection: MeasureSelection;
   dimensionDraft: ImagePoint | null;   // first point of a dimension being created
   axisSnap: boolean;
+  pinKind: PinKind;   // kind placed by the 'memo' (mark) tool
   measureUndo: Array<{ dimensions: Dimension[]; memos: MemoPin[] }>;
   lastUndoKey: string | null;
   // Request for the canvas to center the view on a point (seq makes repeats fire)
@@ -123,6 +129,7 @@ export type AppStore = AppState & {
   setMode: (mode: AppMode) => void;
   setMeasureTool: (tool: MeasureTool) => void;
   setAxisSnap: (enabled: boolean) => void;
+  setPinKind: (kind: PinKind) => void;
   selectMeasure: (selection: MeasureSelection) => void;
   // Handles a tap on empty canvas in measure mode according to the current tool
   placeMeasurePoint: (point: ImagePoint) => void;
@@ -130,7 +137,7 @@ export type AppStore = AppState & {
   addDimension: (a: ImagePoint, b: ImagePoint) => string;
   updateDimension: (id: string, changes: Partial<Omit<Dimension, 'id'>>, opts?: UndoOption) => void;
   deleteDimension: (id: string) => void;
-  addMemo: (pos: ImagePoint) => string;
+  addMemo: (pos: ImagePoint, kind?: PinKind) => string;
   updateMemo: (id: string, changes: Partial<Omit<MemoPin, 'id'>>, opts?: UndoOption) => void;
   deleteMemo: (id: string) => void;
   pushMeasureUndo: (undoKey?: string) => void;

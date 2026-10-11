@@ -1,7 +1,7 @@
 # RoomSim
 
 賃貸物件の間取りシミュレーター。間取り画像を背景に家具を配置・サイズ調整・回転できるブラウザアプリ（日本語UI）。
-内見時に実測値を記録する「採寸モード」（寸法線・メモピン）を持つ。PWA（オフライン起動可）。
+内見時に実測値を記録する「採寸モード」（寸法線・マーク/メモピン）を持つ。PWA（オフライン起動可）。
 
 ## Tech Stack
 
@@ -25,6 +25,7 @@ src/
   utils/measureUtils.ts            水平垂直スナップ・cm 入力パース
   utils/projectUtils.ts            makeInitialProject / normalizeProject（旧データ補完）
   data/furniturePresets.ts         プリセット家具データ
+  data/pinKinds.ts                 マークの種類（コンセント/TV端子/LAN/エアコン/メモ）の表示名・色・グリフ
   components/
     canvas/
       CanvasArea.tsx               Stage・zoom/pan・CSS グリッドオーバーレイ
@@ -41,9 +42,9 @@ src/
     properties/
       PropertiesPanel.tsx          右パネル（選択家具のプロパティ編集）
     measure/                       採寸モード UI（CanvasModeBar, MeasureTools, MeasureHint,
-                                   MeasureList, MeasureSelectionEditor, DimensionEditor, MemoEditor）
+                                   MeasureList, MeasureSelectionEditor, DimensionEditor, MemoEditor, PinIcon）
     mobile/
-      MobileTabBar.tsx             スマホ用下部タブ（配置: 画像/家具/縮尺/編集/その他、採寸: ＋寸法/＋メモ/一覧/その他）
+      MobileTabBar.tsx             スマホ用下部タブ（配置: 画像/家具/縮尺/編集/その他、採寸: ＋寸法/＋マーク/一覧/その他）
 ```
 
 ## State Model
@@ -58,14 +59,14 @@ project: {
   scale?: ScaleSetting
   furniture: FurnitureItem[]
   dimensions: Dimension[] // { a, b: ImagePoint, valueCm: number|null, note? }
-  memos: MemoPin[]        // { pos: ImagePoint, text }
+  memos: MemoPin[]        // { pos: ImagePoint, text, kind?: PinKind }（kind 未設定 = 'memo'）
   snapGrid: { enabled: boolean; sizeCm: number }
 }
 selectedId: string | null
 viewCenterCm: { x, y } | null  // 表示中キャンバス中心のワールド座標（非保存）。新規家具の配置位置
 projectRev: number             // 物件の差し替え/消去で増える（ローカルフォーム state リセットの合図）
 mode: 'furniture' | 'measure'
-measureTool / measureSelection / dimensionDraft / axisSnap / measureUndo   // 採寸 UI 状態（非保存）
+measureTool / measureSelection / dimensionDraft / axisSnap / pinKind / measureUndo   // 採寸 UI 状態（非保存）
 ```
 
 保存先: IndexedDB（`store/persistence.ts`）。キー: `projects`（一覧）, `currentProjectId`,
@@ -152,6 +153,7 @@ Konva Transformer の `rotationSnaps={[0,45,90,135,180,225,270,315]}` + `rotatio
 - タップの解釈は `placeMeasurePoint`（store）に集約: ツール `dimension` は 2 タップで線（2 点目は水平垂直スナップ）、`memo` はピン、`select` は選択解除
 - ツールが `dimension` / `memo` の間は寸法線のヒット判定を切る（`MeasureLayer` の `listening`）。既存線の上でも点を置ける
 - ラベル・ピン・ハンドルは `1/stageScale` で画面上一定サイズ
+- マークは「種類を選んでからタップ」。`memo` 以外（アイコン）は配置後に**選択しない**ので連続で置ける（誤配置は戻す）。テキストは任意メモで図面には出さない。`memo` は配置後に選択してエディタを開き、テキストを図面に表示する。番号は `memo` のみに振る
 - 配置モードでも寸法線は参考表示（listening なし）。採寸モードでは家具レイヤーを半透明・listening なし
 - undo は `measureUndo`（寸法線・メモ配列のスナップショット）。`UndoOption.undoKey` で入力中の連続更新を 1 ステップにまとめる。ドラッグは `onDragStart` で 1 回 push、移動中は `undoKey: false`
 - スマホでは選択中の寸法線/メモがあればタブに関係なくシートにエディタを表示。タブ切替でツールが切り替わる
