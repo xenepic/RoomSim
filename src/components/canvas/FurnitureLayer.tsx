@@ -34,7 +34,7 @@ export function FurnitureLayer({ stageScale, interactive, onFurnitureTap }: Furn
     const node = selectedId ? nodesRef.current.get(selectedId) : undefined;
     trRef.current.nodes(node ? [node] : []);
     trRef.current.getLayer()?.batchDraw();
-  }, [selectedId, furniture]);
+  }, [selectedId, furniture, interactive]);
 
   const handleRef = useCallback((id: string, node: Konva.Group | null) => {
     if (node) nodesRef.current.set(id, node);
@@ -56,7 +56,9 @@ export function FurnitureLayer({ stageScale, interactive, onFurnitureTap }: Furn
           onRef={handleRef}
         />
       ))}
-      <Transformer
+      {/* Not rendered in measure mode: its anchors (fill + stroke) on the translucent
+          layer would each be drawn through Konva's full-stage buffer canvas every frame */}
+      {interactive && <Transformer
         ref={trRef}
         rotateEnabled={true}
         anchorSize={isCoarsePointer ? 20 : 10}
@@ -69,7 +71,7 @@ export function FurnitureLayer({ stageScale, interactive, onFurnitureTap }: Furn
           if (newBox.width < 10 || newBox.height < 10) return oldBox;
           return newBox;
         }}
-      />
+      />}
     </Layer>
   );
 }

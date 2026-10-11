@@ -116,6 +116,7 @@ fill と stroke を両方持ち、かつ実効 opacity < 1（自身の opacity �
 既定では**ステージ全面サイズのオフスクリーン canvas 経由**で毎フレーム描画される。家具 Rect・寸法ラベル・
 メモピン等で iPad のパン/ズームが 1 フレーム ~200ms になっていたため、該当 Shape には `perfectDrawEnabled={false}` を付ける
 （新しく fill+stroke の Shape を足すときも同様）。
+採寸モードでは家具レイヤーが半透明になり、Transformer のアンカー（Rect）も同じ経路に入るため、Transformer は `interactive` のときだけ描画する。
 
 ### 回転スナップ
 
