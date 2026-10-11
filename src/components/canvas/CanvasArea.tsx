@@ -7,6 +7,7 @@ import type { CalibrationMode } from '../../App';
 import { FloorplanLayer } from './FloorplanLayer';
 import { FurnitureLayer } from './FurnitureLayer';
 import { RulerOverlay } from './RulerOverlay';
+import { MeasureLayer } from './MeasureLayer';
 import { useAppStore } from '../../store/useAppStore';
 import { getPixelsPerCm } from '../../utils/scaleUtils';
 
@@ -33,6 +34,10 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
   const setViewCenterCm = useAppStore((s) => s.setViewCenterCm);
   const scale = useAppStore((s) => s.project.scale);
   const snapGrid = useAppStore((s) => s.project.snapGrid);
+  const mode = useAppStore((s) => s.mode);
+  const placeMeasurePoint = useAppStore((s) => s.placeMeasurePoint);
+  const viewFocusRequest = useAppStore((s) => s.viewFocusRequest);
+  const dimensions = useAppStore((s) => s.project.dimensions);
 
   const ppc = getPixelsPerCm(scale);
   const gridSpacingPx = snapGrid.sizeCm * ppc * stageScale;
@@ -111,10 +116,14 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) pinchRef.current = null;
+      // Suppress the emulated mousedown/click that follows a tap: it would steal focus
+      // from an input auto-focused by that tap (e.g. the dimension value field).
+      // Konva detects taps from touch events themselves, so it is unaffected.
+      if (e.cancelable) e.preventDefault();
     };
 
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
     container.addEventListener('touchcancel', handleTouchEnd);
     return () => {
       container.removeEventListener('touchmove', handleTouchMove);
@@ -145,9 +154,23 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
     });
   }, [stageScale, stagePos]);
 
-  // Deselect furniture when clicking empty canvas area
+  // Center the view on a requested point (e.g. an item tapped in the measure list)
+  useEffect(() => {
+    if (!viewFocusRequest) return;
+    const { point } = viewFocusRequest;
+    setStagePos({ x: size.width / 2 - point.x * stageScale, y: size.height / 2 - point.y * stageScale });
+  }, [viewFocusRequest]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Tap on empty canvas: deselect furniture, or place a point in measure mode
   const handleStageClick = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
-    if (e.target === e.target.getStage()) selectFurniture(null);
+    const stage = e.target.getStage();
+    if (e.target !== stage) return;
+    if (mode === 'measure') {
+      const point = stage.getRelativePointerPosition();
+      if (point) placeMeasurePoint(point);
+    } else {
+      selectFurniture(null);
+    }
   };
 
   // Update stage position after dragging the canvas to pan
@@ -172,7 +195,11 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
         onDragEnd={handleStageDragEnd}
       >
         <FloorplanLayer />
-        <FurnitureLayer stageScale={stageScale} stagePos={stagePos} canvasSize={size} onFurnitureTap={onFurnitureTap} />
+        <FurnitureLayer
+          stageScale={stageScale} stagePos={stagePos} canvasSize={size}
+          interactive={mode === 'furniture'} onFurnitureTap={onFurnitureTap}
+        />
+        <MeasureLayer stageScale={stageScale} interactive={mode === 'measure'} />
         {calibrationMode && (
           <RulerOverlay
             mode={calibrationMode}
@@ -196,9 +223,11 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
       )}
 
       <div className="canvas-status">
-        {scale
-          ? `縮尺: ${scale.pixelsPerCm.toFixed(2)} px/cm (${scale.accuracy === 'estimated' ? '推定' : '実測'})`
-          : '縮尺未設定（参考表示）'}
+        {mode === 'measure'
+          ? `寸法線 ${dimensions.length}本（未測定 ${dimensions.filter((d) => d.valueCm === null).length}）`
+          : scale
+            ? `縮尺: ${scale.pixelsPerCm.toFixed(2)} px/cm (${scale.accuracy === 'estimated' ? '推定' : '実測'})`
+            : '縮尺未設定（参考表示）'}
         {'　'}ズーム: {(stageScale * 100).toFixed(0)}%
       </div>
     </div>

@@ -9,10 +9,11 @@ interface FurnitureLayerProps {
   stageScale: number;
   stagePos: { x: number; y: number };
   canvasSize: { width: number; height: number };
+  interactive: boolean;   // false in measure mode: dimmed and ignores input
   onFurnitureTap?: () => void;
 }
 
-export function FurnitureLayer({ stageScale, onFurnitureTap }: FurnitureLayerProps) {
+export function FurnitureLayer({ stageScale, interactive, onFurnitureTap }: FurnitureLayerProps) {
   const furniture = useAppStore((s) => s.project.furniture);
   const scale = useAppStore((s) => s.project.scale);
   const snapGrid = useAppStore((s) => s.project.snapGrid);
@@ -41,7 +42,7 @@ export function FurnitureLayer({ stageScale, onFurnitureTap }: FurnitureLayerPro
   }, []);
 
   return (
-    <Layer>
+    <Layer listening={interactive} opacity={interactive ? 1 : 0.35}>
       {furniture.map((item) => (
         <FurnitureShape
           key={item.id}

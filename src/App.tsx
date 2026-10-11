@@ -9,8 +9,14 @@ import { ImageUploader } from './components/toolbar/ImageUploader';
 import { FurniturePresetList } from './components/toolbar/FurniturePresetList';
 import { ScaleCalibrator } from './components/toolbar/ScaleCalibrator';
 import { SnapGridToggle } from './components/toolbar/SnapGridToggle';
-import { MobileTabBar, type MobileTab } from './components/mobile/MobileTabBar';
+import { MobileTabBar, FURNITURE_TABS, MEASURE_TABS, type MobileTab } from './components/mobile/MobileTabBar';
+import { CanvasModeBar } from './components/measure/CanvasModeBar';
+import { MeasureTools } from './components/measure/MeasureTools';
+import { MeasureHint } from './components/measure/MeasureHint';
+import { MeasureList } from './components/measure/MeasureList';
+import { MeasureSelectionEditor } from './components/measure/MeasureSelectionEditor';
 import { useMediaQuery } from './hooks/useMediaQuery';
+import { initPersistence } from './store/persistence';
 
 // CalibrationMode is exported so toolbar and canvas components can share the type.
 export type CalibrationMode = 'ruler' | 'tatami' | null;
@@ -19,8 +25,9 @@ export type CalibrationMode = 'ruler' | 'tatami' | null;
 const MOBILE_QUERY = '(max-width: 767px), (max-height: 500px)';
 
 function App() {
-  const loadProject = useAppStore((s) => s.loadProject);
   const selectedId = useAppStore((s) => s.selectedId);
+  const mode = useAppStore((s) => s.mode);
+  const hasMeasureSelection = useAppStore((s) => s.measureSelection !== null);
   const isMobile = useMediaQuery(MOBILE_QUERY);
   const [activeTab, setActiveTab] = useState<MobileTab | null>(null);
 
@@ -29,17 +36,36 @@ function App() {
     if (!selectedId) setActiveTab((tab) => (tab === 'edit' ? null : tab));
   }, [selectedId]);
 
-  // Restore saved project on first load
-  useEffect(() => { loadProject(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Restore the last-opened project and start autosaving
+  useEffect(() => { void initPersistence(); }, []);
 
-  // Keyboard shortcuts: Delete = remove selected, Ctrl+C = duplicate selected
+  // Keyboard shortcuts — furniture mode: Delete = remove, Ctrl+C = duplicate;
+  // measure mode: Delete = remove, Ctrl+Z = undo, Escape = cancel/deselect
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't fire when the user is typing in a form field
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
-      const { selectedId, deleteFurniture, duplicateFurniture } = useAppStore.getState();
+      const state = useAppStore.getState();
+      if (state.mode === 'measure') {
+        const sel = state.measureSelection;
+        if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
+          if (sel.kind === 'dimension') state.deleteDimension(sel.id);
+          else state.deleteMemo(sel.id);
+        }
+        if (e.key === 'z' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          state.undoMeasure();
+        }
+        if (e.key === 'Escape') {
+          if (state.dimensionDraft) state.cancelDimensionDraft();
+          else state.selectMeasure(null);
+        }
+        return;
+      }
+
+      const { selectedId, deleteFurniture, duplicateFurniture } = state;
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedId) deleteFurniture(selectedId);
@@ -90,6 +116,21 @@ function App() {
     setTatamiRect(null);
   };
 
+  // Switching modes closes any open sheet and abandons an in-progress calibration
+  useEffect(() => {
+    setActiveTab(null);
+    cancelCalibration();
+  }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // In measure mode the tab picks the tool: ＋寸法 / ＋メモ place items, others select
+  const handleTabChange = (tab: MobileTab | null) => {
+    setActiveTab(tab);
+    if (mode !== 'measure') return;
+    const { setMeasureTool, selectMeasure } = useAppStore.getState();
+    setMeasureTool(tab === 'addDimension' ? 'dimension' : tab === 'addMemo' ? 'memo' : 'select');
+    selectMeasure(null);
+  };
+
   const calibratorProps = {
     calibrationMode,
     rulerPoints,
@@ -116,7 +157,15 @@ function App() {
     scale: <><ScaleCalibrator {...calibratorProps} /><SnapGridToggle /></>,
     edit: <PropertiesPanel />,
     project: <><ProjectActions />{portalLink}</>,
+    addDimension: <MeasureHint />,
+    addMemo: <MeasureHint />,
+    list: <MeasureList />,
   };
+
+  // Measure mode: a selected dimension/memo always shows its editor (even with no tab open)
+  const mobileSheet = mode === 'measure' && hasMeasureSelection
+    ? <MeasureSelectionEditor />
+    : activeTab ? mobileSheetContent[activeTab] : null;
 
   // Every child keeps a fixed slot (null when hidden) so the canvas is not
   // remounted — and zoom/pan are kept — when crossing the mobile breakpoint.
@@ -125,7 +174,9 @@ function App() {
       {isMobile ? null : (
         <div className="left-panel">
           <div className="left-panel-scroll">
-            <Toolbar {...calibratorProps} />
+            {mode === 'measure'
+              ? <><MeasureTools /><MeasureList /></>
+              : <Toolbar {...calibratorProps} />}
           </div>
           <ProjectActions />
           {portalLink}
@@ -138,16 +189,23 @@ function App() {
           onTatamiRect={handleTatamiRect}
           onFurnitureTap={isMobile ? () => setActiveTab('edit') : undefined}
         />
+        <CanvasModeBar />
       </div>
       {isMobile ? null : (
         <div className="right-panel">
-          <PropertiesPanel />
+          {mode === 'measure' ? <MeasureSelectionEditor /> : <PropertiesPanel />}
         </div>
       )}
-      {isMobile && activeTab ? (
-        <div className="mobile-sheet">{mobileSheetContent[activeTab]}</div>
+      {isMobile && mobileSheet ? (
+        <div className="mobile-sheet">{mobileSheet}</div>
       ) : null}
-      {isMobile ? <MobileTabBar activeTab={activeTab} onChange={setActiveTab} /> : null}
+      {isMobile ? (
+        <MobileTabBar
+          tabs={mode === 'measure' ? MEASURE_TABS : FURNITURE_TABS}
+          activeTab={activeTab}
+          onChange={handleTabChange}
+        />
+      ) : null}
     </div>
   );
 }

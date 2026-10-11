@@ -1,6 +1,8 @@
-export type MobileTab = 'image' | 'furniture' | 'scale' | 'edit' | 'project';
+export type MobileTab =
+  | 'image' | 'furniture' | 'scale' | 'edit' | 'project'   // furniture mode
+  | 'addDimension' | 'addMemo' | 'list';                   // measure mode
 
-const TABS: Array<{ id: MobileTab; label: string }> = [
+export const FURNITURE_TABS: Array<{ id: MobileTab; label: string }> = [
   { id: 'image', label: '画像' },
   { id: 'furniture', label: '家具' },
   { id: 'scale', label: '縮尺' },
@@ -8,15 +10,23 @@ const TABS: Array<{ id: MobileTab; label: string }> = [
   { id: 'project', label: 'その他' },
 ];
 
+export const MEASURE_TABS: Array<{ id: MobileTab; label: string }> = [
+  { id: 'addDimension', label: '＋寸法' },
+  { id: 'addMemo', label: '＋メモ' },
+  { id: 'list', label: '一覧' },
+  { id: 'project', label: 'その他' },
+];
+
 interface MobileTabBarProps {
+  tabs: Array<{ id: MobileTab; label: string }>;
   activeTab: MobileTab | null;
   onChange: (tab: MobileTab | null) => void;
 }
 
-export function MobileTabBar({ activeTab, onChange }: MobileTabBarProps) {
+export function MobileTabBar({ tabs, activeTab, onChange }: MobileTabBarProps) {
   return (
     <nav className="mobile-tabs">
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.id}
           className={tab.id === activeTab ? 'active' : undefined}

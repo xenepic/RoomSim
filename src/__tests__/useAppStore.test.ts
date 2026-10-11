@@ -66,17 +66,117 @@ describe('duplicateFurniture', () => {
   });
 });
 
-describe('saveProject / loadProject', () => {
-  test('round-trips project data through localStorage', () => {
-    useAppStore.getState().addFurniture({
-      name: 'ベッド', xCm: 100, yCm: 200, widthCm: 120, depthCm: 200, rotation: 0, color: '#AED6F1',
-    });
-    useAppStore.getState().saveProject();
+describe('resetProject', () => {
+  test('clears content but keeps id and name, and bumps projectRev', () => {
+    const { id } = useAppStore.getState().project;
+    useAppStore.getState().renameProject('A物件');
+    useAppStore.getState().addDimension({ x: 0, y: 0 }, { x: 10, y: 0 });
+    const rev = useAppStore.getState().projectRev;
     useAppStore.getState().resetProject();
-    expect(useAppStore.getState().project.furniture).toHaveLength(0);
-    useAppStore.getState().loadProject();
-    expect(useAppStore.getState().project.furniture).toHaveLength(1);
-    expect(useAppStore.getState().project.furniture[0].name).toBe('ベッド');
+    const { project, projectRev, measureSelection } = useAppStore.getState();
+    expect(project).toMatchObject({ id, name: 'A物件', furniture: [], dimensions: [], memos: [] });
+    expect(projectRev).toBe(rev + 1);
+    expect(measureSelection).toBeNull();
+  });
+});
+
+describe('measure: dimensions', () => {
+  beforeEach(() => {
+    useAppStore.getState().setMode('measure');
+    useAppStore.getState().setAxisSnap(true);
+  });
+
+  test('two taps with the dimension tool create an unmeasured, selected line', () => {
+    const s = useAppStore.getState();
+    s.setMeasureTool('dimension');
+    s.placeMeasurePoint({ x: 10, y: 10 });
+    expect(useAppStore.getState().dimensionDraft).toEqual({ x: 10, y: 10 });
+    s.placeMeasurePoint({ x: 200, y: 14 });   // ~1° off horizontal → snapped
+    const { project, dimensionDraft, measureSelection } = useAppStore.getState();
+    expect(project.dimensions).toHaveLength(1);
+    expect(project.dimensions[0]).toMatchObject({ a: { x: 10, y: 10 }, b: { x: 200, y: 10 }, valueCm: null });
+    expect(dimensionDraft).toBeNull();
+    expect(measureSelection).toEqual({ kind: 'dimension', id: project.dimensions[0].id });
+  });
+
+  test('without axis snap the end point is kept as tapped', () => {
+    const s = useAppStore.getState();
+    s.setAxisSnap(false);
+    s.setMeasureTool('dimension');
+    s.placeMeasurePoint({ x: 10, y: 10 });
+    s.placeMeasurePoint({ x: 200, y: 14 });
+    expect(useAppStore.getState().project.dimensions[0].b).toEqual({ x: 200, y: 14 });
+  });
+
+  test('the measured value is stored as entered, independent of the line length', () => {
+    const id = useAppStore.getState().addDimension({ x: 0, y: 0 }, { x: 100, y: 0 });
+    useAppStore.getState().updateDimension(id, { valueCm: 362.5 });
+    expect(useAppStore.getState().project.dimensions[0].valueCm).toBe(362.5);
+  });
+
+  test('select tool tap on empty canvas clears the selection', () => {
+    useAppStore.getState().addDimension({ x: 0, y: 0 }, { x: 100, y: 0 });
+    useAppStore.getState().setMeasureTool('select');
+    useAppStore.getState().placeMeasurePoint({ x: 50, y: 50 });
+    expect(useAppStore.getState().measureSelection).toBeNull();
+  });
+
+  test('switching mode clears selection and draft', () => {
+    const s = useAppStore.getState();
+    s.setMeasureTool('dimension');
+    s.placeMeasurePoint({ x: 1, y: 1 });
+    s.setMode('furniture');
+    expect(useAppStore.getState()).toMatchObject({ dimensionDraft: null, measureSelection: null, measureTool: 'select' });
+  });
+});
+
+describe('measure: memos', () => {
+  test('memo tool tap adds a selected empty memo; delete removes it', () => {
+    const s = useAppStore.getState();
+    s.setMode('measure');
+    s.setMeasureTool('memo');
+    s.placeMeasurePoint({ x: 30, y: 40 });
+    const memo = useAppStore.getState().project.memos[0];
+    expect(memo).toMatchObject({ pos: { x: 30, y: 40 }, text: '' });
+    expect(useAppStore.getState().measureSelection).toEqual({ kind: 'memo', id: memo.id });
+    s.updateMemo(memo.id, { text: 'コンセント' });
+    expect(useAppStore.getState().project.memos[0].text).toBe('コンセント');
+    s.deleteMemo(memo.id);
+    expect(useAppStore.getState().project.memos).toHaveLength(0);
+    expect(useAppStore.getState().measureSelection).toBeNull();
+  });
+});
+
+describe('measure: undo', () => {
+  test('undo reverts add, update and delete step by step', () => {
+    const s = useAppStore.getState();
+    const id = s.addDimension({ x: 0, y: 0 }, { x: 100, y: 0 });
+    s.updateDimension(id, { valueCm: 100 });
+    s.deleteDimension(id);
+    expect(useAppStore.getState().project.dimensions).toHaveLength(0);
+    s.undoMeasure();   // undo delete
+    expect(useAppStore.getState().project.dimensions[0].valueCm).toBe(100);
+    s.undoMeasure();   // undo value
+    expect(useAppStore.getState().project.dimensions[0].valueCm).toBeNull();
+    s.undoMeasure();   // undo add
+    expect(useAppStore.getState().project.dimensions).toHaveLength(0);
+    expect(useAppStore.getState().measureSelection).toBeNull();
+  });
+
+  test('typing with the same undoKey coalesces into one undo step', () => {
+    const s = useAppStore.getState();
+    const id = s.addDimension({ x: 0, y: 0 }, { x: 100, y: 0 });
+    for (const v of [3, 35, 350]) s.updateDimension(id, { valueCm: v }, { undoKey: `value:${id}` });
+    s.undoMeasure();
+    expect(useAppStore.getState().project.dimensions[0].valueCm).toBeNull();
+  });
+
+  test('undoKey false does not record a step', () => {
+    const s = useAppStore.getState();
+    const id = s.addDimension({ x: 0, y: 0 }, { x: 100, y: 0 });
+    const depth = useAppStore.getState().measureUndo.length;
+    s.updateDimension(id, { a: { x: 5, y: 0 } }, { undoKey: false });
+    expect(useAppStore.getState().measureUndo).toHaveLength(depth);
   });
 });
 

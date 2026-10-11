@@ -10,7 +10,7 @@ export function FurniturePresetList() {
   const addFurniture = useAppStore((s) => s.addFurniture);
   const hasFloorplan = useAppStore((s) => !!s.project.floorplan);
   const hasScale = useAppStore((s) => !!s.project.scale);
-  const projectId = useAppStore((s) => s.project.id);
+  const projectRev = useAppStore((s) => s.projectRev);
   const viewCenterCm = useAppStore((s) => s.viewCenterCm);
   const [customName, setCustomName] = useState('');
   const [customW, setCustomW] = useState('100');
@@ -22,7 +22,7 @@ export function FurniturePresetList() {
     setCustomName('');
     setCustomW('100');
     setCustomD('80');
-  }, [projectId]);
+  }, [projectRev]);
 
   // New furniture appears at the center of the visible canvas
   const placeX = viewCenterCm ? Math.round(viewCenterCm.x) : DEFAULT_PLACE_CM;

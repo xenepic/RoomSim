@@ -147,3 +147,130 @@
   max-width: calc(100vw - 32px);
   text-align: center;
 }
+
+/* Floating mode switch + undo at the top-right of the canvas */
+.canvas-mode-bar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.mode-toggle {
+  display: flex;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.mode-toggle button,
+.canvas-undo {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+.mode-toggle button {
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  color: #555;
+}
+.mode-toggle button + button { border-left: 1px solid #bbb; }
+.mode-toggle button.active {
+  background: #2563EB;
+  color: #fff;
+  font-weight: 600;
+}
+.canvas-undo {
+  background: #fff;
+  border-color: #bbb;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+button.tool-active {
+  background: #2563EB;
+  border-color: #2563EB;
+  color: #fff;
+}
+
+.measure-hint {
+  font-size: 13px;
+  font-weight: 600;
+  color: #DC2626;
+}
+
+.measure-editor {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+input.measure-value-input {
+  font-size: 20px;
+  padding: 8px 10px;
+}
+.measure-editor button { min-height: 40px; }
+
+textarea {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 7px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+button.chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: #F5EEF8;
+  border-color: #D2B4DE;
+  color: #6C3483;
+}
+
+.measure-empty { font-size: 11px; color: #aaa; }
+.measure-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  margin-bottom: 4px;
+  text-align: left;
+  border-color: #e0e0e0;
+}
+.measure-row.selected { border-color: #DC2626; background: #FEF2F2; }
+.measure-row-value { font-weight: 600; color: #1D4ED8; white-space: nowrap; }
+.measure-row-value.unmeasured { color: #E67E22; }
+.measure-row-note {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.measure-row-pin {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #8E44AD;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* iOS Safari zooms the page when focusing inputs smaller than 16px */
+.is-mobile input,
+.is-mobile select,
+.is-mobile textarea { font-size: 16px; }
+.is-mobile input.measure-value-input { font-size: 22px; }

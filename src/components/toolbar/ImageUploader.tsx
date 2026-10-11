@@ -5,6 +5,15 @@ export function ImageUploader() {
   const inputRef = useRef<HTMLInputElement>(null);
   const setFloorplan = useAppStore((s) => s.setFloorplan);
   const hasFloorplan = useAppStore((s) => !!s.project.floorplan);
+  const hasMeasurements = useAppStore((s) => s.project.dimensions.length + s.project.memos.length > 0);
+
+  const handleClick = () => {
+    // Measurements are stored in image pixel coordinates, so a different image misplaces them
+    if (hasMeasurements && !window.confirm(
+      '図面を差し替えると、寸法線とメモの位置が新しい図面とずれる可能性があります。続けますか？'
+    )) return;
+    inputRef.current?.click();
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,7 +43,7 @@ export function ImageUploader() {
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
-      <button onClick={() => inputRef.current?.click()} style={{ width: '100%' }}>
+      <button onClick={handleClick} style={{ width: '100%' }}>
         {hasFloorplan ? '画像を変更' : '画像をアップロード'}
       </button>
     </div>
