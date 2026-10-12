@@ -76,7 +76,8 @@ project: {
   plan?: Plan             // 作図データ（初めて作図モードを開いたときに作成）
   background?: 'image' | 'plan'   // 配置モードの背景（未設定 = 部屋があれば図面）
 }
-selectedId: string | null
+selectedId: string | null      // 単独選択の家具（プロパティで編集）。複数選択中は null
+furnitureSelection: string[]   // 選択中の家具すべて（Shift+クリック / Shift+ドラッグ範囲選択）。selectedId と常に同期
 viewCenterCm: { x, y } | null  // 表示中キャンバス中心のワールド座標（非保存）。新規家具の配置位置
 projectRev: number             // 物件の差し替え/消去で増える（ローカルフォーム state リセットの合図）
 mode: 'furniture' | 'measure' | 'plan'
@@ -184,7 +185,7 @@ Konva Transformer の `rotationSnaps={[0,45,90,135,180,225,270,315]}` + `rotatio
 - 下敷き画像は図面の上に乗算合成で重ねる（白地が消える）。大きさは縮尺設定で決まり、位置合わせは図面側を動かす
 - 図面の値と採寸値の紐付け（`measured`）は参照のみ。採寸データを書き換えない。採寸側の削除・値変更は比較表示にそのまま反映
 - undo/redo は採寸と別スタック。「家具も一緒に動かす」があるので家具配列もスナップショットに含める
-- 選択ツールで Shift を押している間は要素のドラッグを止め、どこからでも範囲選択（要素全体が入ったものを追加）。Shift+クリックは選択の切替
+- 選択ツールで Shift を押している間は要素のドラッグを止め、どこからでも範囲選択（要素全体が入ったものを追加）。Shift+クリックは選択の切替。配置モードの家具も同じ操作（`useFurnitureMarquee`、回転後の四隅で判定）。複数選択中の家具はドラッグでまとめて移動（他のノードはドラッグ中に直接動かし、終了時にスナップ後の移動量で store を一括更新）。Transformer は単独選択のときだけ
 - PNG 書き出しは Stage を図面の外接矩形で `toCanvas`。`name="export-hide"` のノードと Transformer を一時的に隠し、家具レイヤーを不透明にする
 - スマホでは作図モードを出さない（配置モードに戻す）
 

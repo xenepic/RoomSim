@@ -7,9 +7,16 @@ import { createPlanSlice, clearedPlanSessionState } from './planSlice';
 
 const MAX_UNDO = 50;
 
+// selectedId is the single selected item (edited in the properties panel), or null
+const selectionState = (ids: string[]) => ({
+  furnitureSelection: ids,
+  selectedId: ids.length === 1 ? ids[0] : null,
+});
+
 // UI state that must be cleared whenever the project is swapped or cleared
 const clearedSessionState = {
   selectedId: null,
+  furnitureSelection: [],
   measureSelection: null,
   dimensionDraft: null,
   measureUndo: [],
@@ -21,6 +28,7 @@ export const useAppStore = create<AppStore>((set, get, api) => ({
   ...createPlanSlice(set, get, api),
   project: makeInitialProject(),
   selectedId: null,
+  furnitureSelection: [],
   viewCenterCm: null,
   projectRev: 0,
   projectList: [],
@@ -40,6 +48,7 @@ export const useAppStore = create<AppStore>((set, get, api) => ({
     set((state) => ({
       project: { ...state.project, furniture: [...state.project.furniture, newItem] },
       selectedId: newItem.id,
+      furnitureSelection: [newItem.id],
     }));
   },
 
@@ -60,7 +69,7 @@ export const useAppStore = create<AppStore>((set, get, api) => ({
         ...state.project,
         furniture: state.project.furniture.filter((f) => f.id !== id),
       },
-      selectedId: state.selectedId === id ? null : state.selectedId,
+      ...selectionState(state.furnitureSelection.filter((x) => x !== id)),
     }));
   },
 
@@ -80,7 +89,48 @@ export const useAppStore = create<AppStore>((set, get, api) => ({
     });
   },
 
-  selectFurniture: (id) => set({ selectedId: id }),
+  selectFurniture: (id) => set(selectionState(id ? [id] : [])),
+
+  setFurnitureSelection: (ids) => set(selectionState(ids)),
+
+  toggleFurnitureSelection: (id) => {
+    const sel = get().furnitureSelection;
+    set(selectionState(sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]));
+  },
+
+  deleteSelectedFurniture: () => {
+    const ids = new Set(get().furnitureSelection);
+    if (ids.size === 0) return;
+    set((state) => ({
+      project: { ...state.project, furniture: state.project.furniture.filter((f) => !ids.has(f.id)) },
+      ...selectionState([]),
+    }));
+  },
+
+  // Copies offset by 10cm; the copies become the selection
+  duplicateSelectedFurniture: () => {
+    const ids = new Set(get().furnitureSelection);
+    if (ids.size === 0) return;
+    const copies = get().project.furniture
+      .filter((f) => ids.has(f.id))
+      .map((f) => ({ ...f, id: crypto.randomUUID(), xCm: f.xCm + 10, yCm: f.yCm + 10 }));
+    set((state) => ({
+      project: { ...state.project, furniture: [...state.project.furniture, ...copies] },
+      ...selectionState(copies.map((f) => f.id)),
+    }));
+  },
+
+  moveFurnitureBy: (ids, dxCm, dyCm) => {
+    const set_ = new Set(ids);
+    set((state) => ({
+      project: {
+        ...state.project,
+        furniture: state.project.furniture.map((f) => (set_.has(f.id)
+          ? { ...f, xCm: Math.round((f.xCm + dxCm) * 100) / 100, yCm: Math.round((f.yCm + dyCm) * 100) / 100 }
+          : f)),
+      },
+    }));
+  },
 
   setFloorplan: (image) => {
     set((state) => ({ project: { ...state.project, floorplan: image } }));
@@ -124,7 +174,7 @@ export const useAppStore = create<AppStore>((set, get, api) => ({
   setMode: (mode) => {
     if (mode === get().mode) return;
     set((state) => ({
-      mode, measureTool: 'select', selectedId: null, measureSelection: null, dimensionDraft: null,
+      mode, measureTool: 'select', selectedId: null, furnitureSelection: [], measureSelection: null, dimensionDraft: null,
       planTool: 'select', planSelection: [],
       // The plan is created the first time plan mode is opened
       project: mode === 'plan' && !state.project.plan ? { ...state.project, plan: makeEmptyPlan() } : state.project,

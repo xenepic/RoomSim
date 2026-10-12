@@ -90,7 +90,7 @@ function App() {
   // Restore the last-opened project and start autosaving
   useEffect(() => { void initPersistence(); }, []);
 
-  // Keyboard shortcuts — furniture mode: Delete = remove, Ctrl+C = duplicate;
+  // Keyboard shortcuts — furniture mode: Delete = remove, Ctrl+C = duplicate (the whole selection);
   // measure mode: Delete = remove, Ctrl+Z = undo, Escape = cancel/deselect;
   // plan mode: also Ctrl+Shift+Z / Ctrl+Y = redo, Ctrl+A = select all, arrows = nudge
   useEffect(() => {
@@ -121,17 +121,19 @@ function App() {
         return;
       }
 
-      const { selectedId, deleteFurniture, duplicateFurniture } = state;
+      const { furnitureSelection, deleteSelectedFurniture, duplicateSelectedFurniture } = state;
 
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedId) deleteFurniture(selectedId);
+        deleteSelectedFurniture();
       }
 
       if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
-        if (!selectedId) return;
+        if (furnitureSelection.length === 0) return;
         e.preventDefault();
-        duplicateFurniture(selectedId);
+        duplicateSelectedFurniture();
       }
+
+      if (e.key === 'Escape') state.selectFurniture(null);
     };
 
     window.addEventListener('keydown', handleKeyDown);

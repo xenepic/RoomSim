@@ -189,7 +189,8 @@ export type FurniturePreset = {
 // Zustand store shape (state + actions)
 export type AppState = {
   project: Project;
-  selectedId: string | null;
+  selectedId: string | null;   // the single selected furniture (edited in the properties panel)
+  furnitureSelection: string[];   // all selected furniture (Shift+click / marquee); kept in sync with selectedId
   // World-space center of the visible canvas (not persisted); null until the canvas mounts
   viewCenterCm: { x: number; y: number } | null;
   // Incremented whenever the project is replaced or cleared (signal to reset local form state)
@@ -229,6 +230,11 @@ export type AppStore = AppState & {
   deleteFurniture: (id: string) => void;
   duplicateFurniture: (id: string) => void;
   selectFurniture: (id: string | null) => void;
+  setFurnitureSelection: (ids: string[]) => void;
+  toggleFurnitureSelection: (id: string) => void;
+  deleteSelectedFurniture: () => void;
+  duplicateSelectedFurniture: () => void;
+  moveFurnitureBy: (ids: string[], dxCm: number, dyCm: number) => void;
   setFloorplan: (image: FloorplanImage) => void;
   setScale: (scale: ScaleSetting) => void;
   setSnapGrid: (enabled: boolean, sizeCm?: number) => void;

@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Stage } from 'react-konva';
+import { Stage, Layer, Rect } from 'react-konva';
 import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { DD } from 'konva/lib/DragAndDrop';
@@ -7,6 +7,7 @@ import type { CalibrationMode } from '../../App';
 import { FloorplanLayer, useFloorplanImage } from './FloorplanLayer';
 import { PlanLayer } from './PlanLayer';
 import { usePlanDrawing } from './usePlanDrawing';
+import { useFurnitureMarquee } from './useFurnitureMarquee';
 import { FurnitureLayer } from './FurnitureLayer';
 import { RulerOverlay } from './RulerOverlay';
 import { MeasureLayer } from './MeasureLayer';
@@ -49,10 +50,10 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
 
   const ppc = getPixelsPerCm(scale);
   const planDrawing = usePlanDrawing(stageScale, ppc);
-  // Shift held with the select tool: dragging empty canvas draws a selection marquee
+  // Shift held (plan mode select tool / furniture mode): a drag draws a selection marquee
   const [shiftHeld, setShiftHeld] = useState(false);
   useEffect(() => {
-    if (mode !== 'plan') return;
+    if (mode !== 'plan' && mode !== 'furniture') return;
     const onKey = (e: KeyboardEvent) => setShiftHeld(e.shiftKey);
     const onBlur = () => setShiftHeld(false);
     window.addEventListener('keydown', onKey);
@@ -66,6 +67,9 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
   }, [mode]);
   // Plan mode tools other than select (and the marquee) draw on the canvas instead of panning it
   const isPlanDrawing = mode === 'plan' && (planTool !== 'select' || shiftHeld || planDrawing.draft !== null);
+  const furnitureMarquee = useFurnitureMarquee(stageScale, ppc);
+  const isFurnitureMarquee = mode === 'furniture' && calibrationMode === null && (shiftHeld || furnitureMarquee.active);
+  const stageHandlers = isPlanDrawing ? planDrawing.handlers : isFurnitureMarquee ? furnitureMarquee.handlers : {};
 
   // The drawn plan replaces the image in plan mode, and in furniture mode when chosen
   // as the background. Measure mode always shows the image (measurements are on it).
@@ -205,7 +209,8 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
     } else if (mode === 'plan') {
       if (!e.evt.shiftKey) selectPlan(null);   // Shift+click is for adding to the selection
     } else {
-      selectFurniture(null);
+      if (furnitureMarquee.consumeClick()) return;
+      if (!e.evt.shiftKey) selectFurniture(null);   // Shift+click is for adding to the selection
     }
   };
 
@@ -215,7 +220,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
   };
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', cursor: isPlanDrawing ? 'crosshair' : undefined }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', cursor: isPlanDrawing || isFurnitureMarquee ? 'crosshair' : undefined }}>
       <Stage
         ref={stageRef}
         width={size.width}
@@ -224,12 +229,12 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
         scaleY={stageScale}
         x={stagePos.x}
         y={stagePos.y}
-        draggable={calibrationMode === null && !isPlanDrawing}
+        draggable={calibrationMode === null && !isPlanDrawing && !isFurnitureMarquee}
         onWheel={handleWheel}
         onClick={handleStageClick}
         onTap={handleStageClick}
         onDragEnd={handleStageDragEnd}
-        {...(isPlanDrawing ? planDrawing.handlers : {})}
+        {...stageHandlers}
       >
         <FloorplanLayer loaded={showPlan ? null : floorplanImage} />
         {showPlan && (
@@ -248,7 +253,18 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
         <FurnitureLayer
           stageScale={stageScale} stagePos={stagePos} canvasSize={size}
           interactive={mode === 'furniture'} onFurnitureTap={onFurnitureTap}
+          marquee={isFurnitureMarquee}
+          consumeClick={furnitureMarquee.consumeClick}
         />
+        {furnitureMarquee.rect && (
+          <Layer listening={false}>
+            <Rect
+              x={furnitureMarquee.rect.x * ppc} y={furnitureMarquee.rect.y * ppc}
+              width={furnitureMarquee.rect.w * ppc} height={furnitureMarquee.rect.h * ppc}
+              stroke="#2563EB" strokeWidth={1.5 / stageScale} dash={[6 / stageScale, 4 / stageScale]}
+            />
+          </Layer>
+        )}
         <MeasureLayer stageScale={stageScale} interactive={mode === 'measure'} />
         {calibrationMode && (
           <RulerOverlay

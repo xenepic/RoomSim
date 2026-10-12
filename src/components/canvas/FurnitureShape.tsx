@@ -13,14 +13,19 @@ interface FurnitureShapeProps {
   snapGrid: { enabled: boolean; sizeCm: number };
   stageScale: number;
   isSelected: boolean;
-  onSelect: () => void;
+  draggable: boolean;
+  onSelect: (additive: boolean) => void;   // additive: Shift+click
   onChange: (changes: Partial<FurnitureItem>) => void;
+  // Drag finished at this (snapped) center; the layer moves the rest of a multi-selection along
+  onMove: (xCm: number, yCm: number) => void;
+  onDragStart: () => void;
+  onDragMove: (node: Konva.Node) => void;
   // Register Konva node so FurnitureLayer can attach the shared Transformer
   onRef: (id: string, node: Konva.Group | null) => void;
 }
 
 export function FurnitureShape({
-  item, scale, snapGrid, stageScale, isSelected, onSelect, onChange, onRef,
+  item, scale, snapGrid, stageScale, isSelected, draggable, onSelect, onChange, onMove, onDragStart, onDragMove, onRef,
 }: FurnitureShapeProps) {
   const ppc = getPixelsPerCm(scale);
   const widthPx = item.widthCm * ppc;
@@ -62,9 +67,9 @@ export function FurnitureShape({
       const newYCm = snapNearest(rawYCm, halfD);
       e.target.x(newXCm * ppc);
       e.target.y(newYCm * ppc);
-      onChange({ xCm: newXCm, yCm: newYCm });
+      onMove(newXCm, newYCm);
     } else {
-      onChange({ xCm: rawXCm, yCm: rawYCm });
+      onMove(rawXCm, rawYCm);
     }
   };
 
@@ -97,9 +102,11 @@ export function FurnitureShape({
       offsetX={widthPx / 2}   // rotate/scale around the center of the furniture
       offsetY={heightPx / 2}
       rotation={item.rotation}
-      draggable
-      onClick={onSelect}
-      onTap={onSelect}
+      draggable={draggable}
+      onClick={(e) => onSelect(e.evt.shiftKey)}
+      onTap={() => onSelect(false)}
+      onDragStart={onDragStart}
+      onDragMove={(e) => onDragMove(e.target)}
       onDragEnd={handleDragEnd}
       onTransformEnd={handleTransformEnd}
     >
