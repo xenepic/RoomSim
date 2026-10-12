@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import type { AppStore, FurnitureItem, Dimension, MemoPin } from '../types';
 import { makeInitialProject } from '../utils/projectUtils';
 import { snapToAxis } from '../utils/measureUtils';
+import { makeEmptyPlan } from '../utils/planUtils';
+import { createPlanSlice, clearedPlanSessionState } from './planSlice';
 
 const MAX_UNDO = 50;
 
@@ -12,9 +14,11 @@ const clearedSessionState = {
   dimensionDraft: null,
   measureUndo: [],
   lastUndoKey: null,
+  ...clearedPlanSessionState,
 };
 
-export const useAppStore = create<AppStore>((set, get) => ({
+export const useAppStore = create<AppStore>((set, get, api) => ({
+  ...createPlanSlice(set, get, api),
   project: makeInitialProject(),
   selectedId: null,
   viewCenterCm: null,
@@ -119,7 +123,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setMode: (mode) => {
     if (mode === get().mode) return;
-    set({ mode, measureTool: 'select', selectedId: null, measureSelection: null, dimensionDraft: null });
+    set((state) => ({
+      mode, measureTool: 'select', selectedId: null, measureSelection: null, dimensionDraft: null,
+      planTool: 'select', planSelection: [],
+      // The plan is created the first time plan mode is opened
+      project: mode === 'plan' && !state.project.plan ? { ...state.project, plan: makeEmptyPlan() } : state.project,
+    }));
   },
 
   setMeasureTool: (tool) => set({ measureTool: tool, dimensionDraft: null }),
