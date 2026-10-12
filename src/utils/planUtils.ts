@@ -1,5 +1,5 @@
 import type {
-  CmPoint, FurnitureItem, Plan, PlanOpening, PlanRef, PlanRoom, RoomSide, WallHost,
+  CmPoint, FurnitureItem, Plan, PlanOpening, PlanRef, PlanRoom, PlanWall, RoomSide, WallHost,
 } from '../types';
 import { snapToCm } from './scaleUtils';
 
@@ -7,6 +7,7 @@ export const DEFAULT_WALL_CM = 10;
 export const DEFAULT_ROOM_CM = 300;
 export const MIN_ROOM_CM = 10;
 export const MIN_OPENING_CM = 20;
+export const MIN_WALL_CM = 10;
 
 export const makeEmptyPlan = (): Plan => ({
   rooms: [],
@@ -18,6 +19,7 @@ export const makeEmptyPlan = (): Plan => ({
 });
 
 export const roomWallCm = (plan: Plan, room: PlanRoom) => room.wallCm ?? plan.wallCm;
+export const wallCm = (plan: Plan, wall: PlanWall) => wall.thicknessCm ?? plan.wallCm;
 
 export const ROOM_SIDES: RoomSide[] = ['top', 'right', 'bottom', 'left'];
 
@@ -55,7 +57,7 @@ export function hostFrame(plan: Plan, host: WallHost): HostFrame | null {
     const wall = plan.walls.find((w) => w.id === host.wallId);
     if (!wall) return null;
     ({ a, b } = wall);
-    const t = wall.thicknessCm ?? plan.wallCm;
+    const t = wallCm(plan, wall);
     band = [-t / 2, t / 2];
   }
   const len = Math.hypot(b.x - a.x, b.y - a.y);

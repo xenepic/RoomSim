@@ -1,17 +1,19 @@
 import { useRef, useEffect, useCallback } from 'react';
-import { Layer, Group, Rect, Text, Line, Transformer, Image as KonvaImage } from 'react-konva';
+import { Layer, Group, Rect, Text, Line, Circle, Transformer, Image as KonvaImage } from 'react-konva';
 import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
 import { getPixelsPerCm } from '../../utils/scaleUtils';
 import {
   clampOffset, findNearestHost, framePoint, hostFrame, projectOnFrame, sameHost,
-  MIN_ROOM_CM, roomWallCm, roundCm, selectionEdges, snapDelta, snapLines, type SnapLines,
+  MIN_ROOM_CM, MIN_WALL_CM, roomWallCm, wallCm, roundCm, selectionEdges, snapDelta, snapLines, type SnapLines,
 } from '../../utils/planUtils';
 import type { CmPoint, PlanRef, PlanSnapshot } from '../../types';
 import type { LoadedFloorplan } from './FloorplanLayer';
 import { FLOOR_COLOR, OpeningShape } from './PlanOpeningShape';
 import { getWindowType } from '../../data/planKinds';
+import { FixtureShape } from './PlanFixtureShape';
+import { snapToAxis } from '../../utils/measureUtils';
 
 export const WALL_COLOR = '#3F3F46';
 const SELECT_COLOR = '#2563EB';
@@ -48,6 +50,8 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
   const selectPlan = useAppStore((s) => s.selectPlan);
   const updateRoom = useAppStore((s) => s.updateRoom);
   const updateOpening = useAppStore((s) => s.updateOpening);
+  const updateFixture = useAppStore((s) => s.updateFixture);
+  const updateWall = useAppStore((s) => s.updateWall);
 
   const ppc = getPixelsPerCm(scale);
   const k = 1 / (ppc * stageScale);
@@ -135,7 +139,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
     return group.getAbsoluteTransform().point(snapped);
   };
 
-  const handleRoomTransform = (id: string) => (e: KonvaEventObject<Event>) => {
+  const handleRectTransform = (kind: 'room' | 'fixture', id: string) => (e: KonvaEventObject<Event>) => {
     const node = e.target;
     const rect = {
       x: roundCm(node.x()),
@@ -145,7 +149,38 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
     };
     node.scale({ x: 1, y: 1 });
     node.setAttrs({ width: rect.w, height: rect.h });
-    updateRoom(id, rect, { undoKey: false });
+    if (kind === 'room') updateRoom(id, rect, { undoKey: false });
+    else updateFixture(id, rect, { undoKey: false });
+  };
+
+  // Wall end handles: snap to the other elements / grid, and to horizontal/vertical
+  // relative to the other end
+  const handleWallEndDragStart = (id: string) => (e: KonvaEventObject<DragEvent>) => {
+    e.cancelBubble = true;
+    const st = useAppStore.getState();
+    st.setPlanSelection([{ kind: 'wall', id }]);
+    st.pushPlanUndo();
+    resizeLinesRef.current = snapLines(st.project.plan!, [{ kind: 'wall', id }]);
+  };
+
+  const handleWallEndDragMove = (id: string, end: 'a' | 'b') => (e: KonvaEventObject<DragEvent>) => {
+    e.cancelBubble = true;
+    const wall = useAppStore.getState().project.plan?.walls.find((w) => w.id === id);
+    const lines = resizeLinesRef.current;
+    if (!wall || !lines) return;
+    const other = end === 'a' ? wall.b : wall.a;
+    const raw = e.target.position();
+    const q = snapToAxis(other, { x: Math.round(raw.x), y: Math.round(raw.y) }, 3);
+    const p = {
+      x: q.x + snapDelta([q.x], lines.xs, snapThreshold, gridCm),
+      y: q.y + snapDelta([q.y], lines.ys, snapThreshold, gridCm),
+    };
+    if (Math.hypot(p.x - other.x, p.y - other.y) < MIN_WALL_CM) {
+      e.target.position(wall[end]);
+      return;
+    }
+    e.target.position(p);
+    updateWall(id, { [end]: p }, { undoKey: false });
   };
 
   // Doors/windows slide along their wall; pulled well away from it, they jump to
@@ -208,7 +243,41 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
               draggable={interactive}
               onClick={handleClick(ref)}
               onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
-              onTransformStart={handleTransformStart} onTransform={handleRoomTransform(r.id)}
+              onTransformStart={handleTransformStart} onTransform={handleRectTransform('room', r.id)}
+            />
+          );
+        })}
+        {/* Free walls (over the floors: partitions inside rooms) */}
+        {plan.walls.map((w) => {
+          const ref: PlanRef = { kind: 'wall', id: w.id };
+          const t = wallCm(plan, w);
+          return (
+            <Line
+              key={w.id}
+              // Positioned by a so that dragging moves the node the same way the data moves
+              x={w.a.x} y={w.a.y} points={[0, 0, w.b.x - w.a.x, w.b.y - w.a.y]}
+              stroke={WALL_COLOR} strokeWidth={t} lineCap="square"
+              hitStrokeWidth={Math.max(t, 14 * k)}
+              listening={interactive}
+              draggable={interactive}
+              onClick={handleClick(ref)}
+              onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
+            />
+          );
+        })}
+        {/* Fixtures: drawn shape plus a transparent rect that is selected/dragged/resized */}
+        {plan.fixtures.map((f) => <FixtureShape key={f.id} fixture={f} k={k} />)}
+        {plan.fixtures.map((f) => {
+          const ref: PlanRef = { kind: 'fixture', id: f.id };
+          return (
+            <Rect
+              key={f.id} ref={setNode(f.id)}
+              x={f.x} y={f.y} width={f.w} height={f.h} fill="rgba(0,0,0,0)"
+              visible={interactive}
+              draggable={interactive}
+              onClick={handleClick(ref)}
+              onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
+              onTransformStart={handleTransformStart} onTransform={handleRectTransform('fixture', f.id)}
             />
           );
         })}
@@ -266,8 +335,11 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
 
       {editing && (
         <Group scaleX={ppc} scaleY={ppc} listening={false}>
-          {plan.rooms.filter((r) => isSelected('room', r.id)).map((r) => (
+          {[...plan.rooms.filter((r) => isSelected('room', r.id)), ...plan.fixtures.filter((f) => isSelected('fixture', f.id))].map((r) => (
             <Rect key={r.id} x={r.x} y={r.y} width={r.w} height={r.h} stroke={SELECT_COLOR} strokeWidth={2 * k} />
+          ))}
+          {plan.walls.filter((w) => isSelected('wall', w.id)).map((w) => (
+            <Line key={w.id} points={[w.a.x, w.a.y, w.b.x, w.b.y]} stroke={SELECT_COLOR} strokeWidth={2 * k} />
           ))}
           {draft?.kind === 'rect' && (
             <Rect x={draft.x} y={draft.y} width={draft.w} height={draft.h}
@@ -278,6 +350,28 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
           )}
         </Group>
       )}
+
+      {/* End handles of a single selected wall */}
+      {interactive && single?.kind === 'wall' && (() => {
+        const w = plan.walls.find((x) => x.id === single.id);
+        if (!w) return null;
+        return (
+          <Group scaleX={ppc} scaleY={ppc}>
+            {(['a', 'b'] as const).map((end) => (
+              <Circle
+                key={end} x={w[end].x} y={w[end].y} radius={6 * k}
+                fill="#fff" stroke={SELECT_COLOR} strokeWidth={1.5 * k} perfectDrawEnabled={false}
+                hitStrokeWidth={0}
+                draggable
+                onDragStart={handleWallEndDragStart(w.id)}
+                onDragMove={handleWallEndDragMove(w.id, end)}
+                onMouseEnter={(e) => { const c = e.target.getStage()?.container(); if (c) c.style.cursor = 'move'; }}
+                onMouseLeave={(e) => { const c = e.target.getStage()?.container(); if (c) c.style.cursor = ''; }}
+              />
+            ))}
+          </Group>
+        );
+      })()}
 
       {interactive && (
         <Transformer

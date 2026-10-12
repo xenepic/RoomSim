@@ -2,14 +2,13 @@ import { useRef, useState } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
 import { snapToAxis } from '../../utils/measureUtils';
-import { DEFAULT_ROOM_CM, MIN_ROOM_CM, snapDelta, snapLines } from '../../utils/planUtils';
+import { DEFAULT_ROOM_CM, MIN_ROOM_CM, MIN_WALL_CM, snapDelta, snapLines } from '../../utils/planUtils';
 import { getFixtureKind } from '../../data/planKinds';
 import type { CmPoint } from '../../types';
 import { SNAP_PX, type PlanDraft } from './PlanLayer';
 
 const CLICK_PX = 4;          // pointer travel below this is a click, not a drag
 const OPENING_PICK_PX = 24;  // how close to a wall a door/window click must be
-const MIN_WALL_CM = 10;
 
 /**
  * Plan-mode creation tools on the Stage: drag to draw a room/fixture rectangle or a

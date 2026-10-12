@@ -1,6 +1,8 @@
 import { useAppStore } from '../../store/useAppStore';
 import { RoomEditor } from './RoomEditor';
 import { OpeningEditor } from './OpeningEditor';
+import { WallEditor } from './WallEditor';
+import { FixtureEditor } from './FixtureEditor';
 
 const KIND_LABEL = { room: '部屋', wall: '壁', opening: '扉・窓', fixture: '設備' } as const;
 
@@ -15,10 +17,13 @@ export function PlanSelectionEditor() {
   const single = selection.length === 1 ? selection[0] : null;
   const room = single?.kind === 'room' ? plan?.rooms.find((r) => r.id === single.id) : undefined;
   const opening = single?.kind === 'opening' ? plan?.openings.find((o) => o.id === single.id) : undefined;
+  const wall = single?.kind === 'wall' ? plan?.walls.find((w) => w.id === single.id) : undefined;
+  const fixture = single?.kind === 'fixture' ? plan?.fixtures.find((f) => f.id === single.id) : undefined;
 
   const title = selection.length === 0 ? '図面'
     : opening ? (opening.type === 'door' ? '扉' : '窓')
-      : single ? KIND_LABEL[single.kind] : `${selection.length}個を選択中`;
+      : fixture ? `設備（${fixture.label || '名前なし'}）`
+        : single ? KIND_LABEL[single.kind] : `${selection.length}個を選択中`;
 
   return (
     <div>
@@ -34,6 +39,8 @@ export function PlanSelectionEditor() {
           {/* key: remount per element so local input state never leaks between elements */}
           {room && <RoomEditor key={room.id} room={room} />}
           {opening && <OpeningEditor key={opening.id} opening={opening} />}
+          {wall && <WallEditor key={wall.id} wall={wall} />}
+          {fixture && <FixtureEditor key={fixture.id} fixture={fixture} />}
           {!single && <p className="plan-note">ドラッグか矢印キー（Shift で 10cm）でまとめて移動できます。</p>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={duplicatePlanSelection} style={{ flex: 1 }} title="Ctrl+C">複製</button>
