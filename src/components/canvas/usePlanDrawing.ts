@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
 import { snapToAxis } from '../../utils/measureUtils';
-import { DEFAULT_ROOM_CM, MIN_ROOM_CM, MIN_WALL_CM, snapDelta, snapLines } from '../../utils/planUtils';
+import { DEFAULT_ROOM_CM, elementsInRect, MIN_ROOM_CM, MIN_WALL_CM, snapDelta, snapLines } from '../../utils/planUtils';
 import { getFixtureKind } from '../../data/planKinds';
 import type { CmPoint } from '../../types';
 import { SNAP_PX, type PlanDraft } from './PlanLayer';
@@ -14,6 +14,8 @@ const OPENING_PICK_PX = 24;  // how close to a wall a door/window click must be
  * Plan-mode creation tools on the Stage: drag to draw a room/fixture rectangle or a
  * wall (a click drops a default-size room/fixture), click near a wall to place a
  * door/window. Rooms, fixtures and walls switch back to the select tool afterwards.
+ * With the select tool, Shift+drag on empty canvas adds the elements inside a marquee
+ * to the selection.
  */
 export function usePlanDrawing(stageScale: number, ppc: number) {
   const [draft, setDraft] = useState<PlanDraft>(null);
@@ -49,8 +51,14 @@ export function usePlanDrawing(stageScale: number, ppc: number) {
   const onPointerDown = (e: KonvaEventObject<PointerEvent>) => {
     if (e.evt.button !== 0) return;
     swallowClickRef.current = false;
-    // Presses on an existing door/window select/drag it instead of placing a new one
-    if (e.target !== e.target.getStage()) return;
+    const tool = useAppStore.getState().planTool;
+    if (tool === 'select') {
+      // Marquee: Shift+drag from anywhere except the resize/wall-end handles
+      if (!e.evt.shiftKey || e.target.draggable() || e.target.getParent()?.getClassName() === 'Transformer') return;
+    } else if (e.target !== e.target.getStage()) {
+      // Presses on an existing door/window select/drag it instead of placing a new one
+      return;
+    }
     const p = pointerCm(e);
     if (!p) return;
     startRef.current = { raw: p, snapped: snapPoint(p) };
@@ -63,7 +71,7 @@ export function usePlanDrawing(stageScale: number, ppc: number) {
     const tool = useAppStore.getState().planTool;
     if (tool === 'door' || tool === 'window') return;
     if (Math.hypot(p.x - start.raw.x, p.y - start.raw.y) < CLICK_PX * k && !draft) return;
-    setDraft(draftFor(start.snapped, snapPoint(p)));
+    setDraft(tool === 'select' ? draftFor(start.raw, p) : draftFor(start.snapped, snapPoint(p)));
   };
 
   const onPointerUp = (e: KonvaEventObject<PointerEvent>) => {
@@ -72,13 +80,24 @@ export function usePlanDrawing(stageScale: number, ppc: number) {
     setDraft(null);
     const p = start && pointerCm(e);
     if (!start || !p) return;
-    swallowClickRef.current = true;
     const st = useAppStore.getState();
     const isClick = Math.hypot(p.x - start.raw.x, p.y - start.raw.y) < CLICK_PX * k;
     const tool = st.planTool;
+    // A Shift+click (no marquee) still toggles the clicked element
+    swallowClickRef.current = !(tool === 'select' && isClick);
 
     if (tool === 'door' || tool === 'window') {
       if (isClick) st.placeOpening(p, OPENING_PICK_PX * k);
+      return;
+    }
+
+    if (tool === 'select') {
+      const m = draftFor(start.raw, p);
+      if (isClick || m?.kind !== 'rect') return;
+      const sel = st.planSelection;
+      const added = elementsInRect(st.project.plan!, m)
+        .filter((r) => !sel.some((x) => x.kind === r.kind && x.id === r.id));
+      st.setPlanSelection([...sel, ...added]);
       return;
     }
 

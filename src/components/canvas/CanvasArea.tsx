@@ -49,8 +49,23 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
 
   const ppc = getPixelsPerCm(scale);
   const planDrawing = usePlanDrawing(stageScale, ppc);
-  // Plan mode tools other than select draw on the canvas instead of panning it
-  const isPlanDrawing = mode === 'plan' && planTool !== 'select';
+  // Shift held with the select tool: dragging empty canvas draws a selection marquee
+  const [shiftHeld, setShiftHeld] = useState(false);
+  useEffect(() => {
+    if (mode !== 'plan') return;
+    const onKey = (e: KeyboardEvent) => setShiftHeld(e.shiftKey);
+    const onBlur = () => setShiftHeld(false);
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('keyup', onKey);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKey);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [mode]);
+  // Plan mode tools other than select (and the marquee) draw on the canvas instead of panning it
+  const isPlanDrawing = mode === 'plan' && (planTool !== 'select' || shiftHeld || planDrawing.draft !== null);
 
   // The drawn plan replaces the image in plan mode, and in furniture mode when chosen
   // as the background. Measure mode always shows the image (measurements are on it).
@@ -188,7 +203,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
       const point = stage.getRelativePointerPosition();
       if (point) placeMeasurePoint(point);
     } else if (mode === 'plan') {
-      selectPlan(null);
+      if (!e.evt.shiftKey) selectPlan(null);   // Shift+click is for adding to the selection
     } else {
       selectFurniture(null);
     }
@@ -226,6 +241,8 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
             underlay={underlay}
             underlayOpacity={plan.underlay.opacity}
             draft={planDrawing.draft}
+            marquee={mode === 'plan' && planTool === 'select' && shiftHeld}
+            consumeClick={planDrawing.consumeClick}
           />
         )}
         <FurnitureLayer

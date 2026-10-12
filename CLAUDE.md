@@ -1,7 +1,7 @@
 # RoomSim
 
 賃貸物件の間取りシミュレーター。間取り画像を背景に家具を配置・サイズ調整・回転できるブラウザアプリ（日本語UI）。
-内見時に実測値を記録する「採寸モード」（寸法線・マーク/メモピン）を持つ。PWA（オフライン起動可）。
+内見時に実測値を記録する「採寸モード」（寸法線・マーク/メモピン）と、寸法から簡易な間取り図を描く「作図モード」（PC のみ）を持つ。PWA（オフライン起動可）。
 
 ## Tech Stack
 
@@ -19,11 +19,16 @@ src/
   App.tsx                          レイアウト（PC 3カラム / スマホ タブ+シート）、Delete/Ctrl+C
   hooks/useMediaQuery.ts           matchMedia 購読フック
   store/useAppStore.ts             Zustand store（プロジェクト全データ + UI 状態 + 採寸 undo）
+  store/planSlice.ts               作図モードの state/アクション（useAppStore に合成。undo/redo は家具込みのスナップショット）
   store/persistence.ts             IndexedDB 自動保存・物件一覧・旧 localStorage 移行・JSON 書き出し/読み込み
   types/index.ts                   型定義（FurnitureItem, Dimension, MemoPin 等）
   utils/scaleUtils.ts              px/cm 変換・snapToCm・縮尺推定
   utils/measureUtils.ts            水平垂直スナップ・cm 入力パース
-  utils/projectUtils.ts            makeInitialProject / normalizeProject（旧データ補完）
+  utils/projectUtils.ts            makeInitialProject / normalizeProject（旧データ補完）/ effectiveBackground
+  utils/planUtils.ts               図面の幾何（壁の座標系 hostFrame、扉窓の追従、移動・削除、スナップ線、範囲選択、外接矩形）
+  utils/planMeasure.ts             図面の値と採寸値の紐付け・比較
+  utils/exportImage.ts             図面＋家具の PNG 書き出し
+  data/planKinds.ts                扉・窓・設備の種類（既定サイズ・表示名・色）
   data/furniturePresets.ts         プリセット家具データ
   data/pinKinds.ts                 マークの種類（コンセント/TV端子/LAN/エアコン/メモ）の表示名・色・グリフ
   components/
@@ -42,6 +47,12 @@ src/
       ProjectBar.tsx               PC 左パネル下部の折りたたみバー（現在の物件名、開くと ProjectActions）。スマホは「その他」タブ
     properties/
       PropertiesPanel.tsx          右パネル（選択家具のプロパティ編集）
+    canvas/PlanLayer.tsx           作図: 部屋・壁・設備・扉窓の描画、選択・ドラッグ・リサイズ・壁端ハンドル
+    canvas/PlanOpeningShape.tsx    扉・窓の記号（sceneFunc 1 つで描画）
+    canvas/PlanFixtureShape.tsx    設備（斜線=家具不可、階段は段、梁は点線）
+    canvas/usePlanDrawing.ts       作図ツールのポインタ処理（部屋/設備/壁の描画、扉窓の配置、Shift+ドラッグ範囲選択）
+    plan/                          作図モード UI（PlanTools, PlanSelectionEditor, RoomEditor, WallEditor,
+                                   OpeningEditor, FixtureEditor, MeasureLinkRow, MeasureComparison, NumField）
     measure/                       採寸モード UI（CanvasModeBar, MeasureTools, MeasureHint,
                                    MeasureList, MeasureSelectionEditor, DimensionEditor, MemoEditor, PinIcon）
     mobile/
@@ -62,12 +73,15 @@ project: {
   dimensions: Dimension[] // { a, b: ImagePoint, valueCm: number|null, note? }
   memos: MemoPin[]        // { pos: ImagePoint, text, kind?: PinKind }（kind 未設定 = 'memo'）
   snapGrid: { enabled: boolean; sizeCm: number }
+  plan?: Plan             // 作図データ（初めて作図モードを開いたときに作成）
+  background?: 'image' | 'plan'   // 配置モードの背景（未設定 = 部屋があれば図面）
 }
 selectedId: string | null
 viewCenterCm: { x, y } | null  // 表示中キャンバス中心のワールド座標（非保存）。新規家具の配置位置
 projectRev: number             // 物件の差し替え/消去で増える（ローカルフォーム state リセットの合図）
-mode: 'furniture' | 'measure'
+mode: 'furniture' | 'measure' | 'plan'
 measureTool / measureSelection / dimensionDraft / axisSnap / pinKind / measureUndo   // 採寸 UI 状態（非保存）
+planTool / planSelection / planDoorType / planWindowType / planFixtureKind / planMoveFurniture / planUndo / planRedo  // 作図 UI 状態（非保存）
 ```
 
 保存先: IndexedDB（`store/persistence.ts`）。キー: `projects`（一覧）, `currentProjectId`,
@@ -161,16 +175,30 @@ Konva Transformer の `rotationSnaps={[0,45,90,135,180,225,270,315]}` + `rotatio
 - 値入力欄の autoFocus を保つため、キャンバス container の `touchend` で `preventDefault`（タップ後の互換 mousedown/click がフォーカスを奪う）
 - スマホでは input の font-size を 16px 以上（iOS Safari のフォーカス時自動ズーム回避）
 
+### 作図モード
+
+- 単位は cm（家具と同じワールド座標）。PlanLayer は `scale = ppc` の Group の中に cm で描き、線幅やラベルは `k = 1/(ppc*stageScale)` で画面上一定サイズにする
+- 部屋は**室内有効寸法**の矩形（x/y = 左上）。壁は部屋ごとに外側へ壁厚分の塗り矩形で描き、その上に床を塗るので、重ねた部屋（L 字）の内側の壁は消える。自由壁は部屋で表せない間仕切り用（中心線 ± 壁厚/2）
+- 扉・窓は `WallHost`（部屋の辺 or 自由壁）上の位置 `offsetCm`（中心）で持つので、壁を動かす・伸縮すると追従する。辺は時計回りで法線が室内向き。`fitOpenings` で壁からはみ出さないよう補正
+- 描画は軽さ優先: 塗りと線を同じ Shape に持たせない、扉窓・設備は sceneFunc 1 つで描く
+- 下敷き画像は図面の上に乗算合成で重ねる（白地が消える）。大きさは縮尺設定で決まり、位置合わせは図面側を動かす
+- 図面の値と採寸値の紐付け（`measured`）は参照のみ。採寸データを書き換えない。採寸側の削除・値変更は比較表示にそのまま反映
+- undo/redo は採寸と別スタック。「家具も一緒に動かす」があるので家具配列もスナップショットに含める
+- 選択ツールで Shift を押している間は要素のドラッグを止め、どこからでも範囲選択（要素全体が入ったものを追加）。Shift+クリックは選択の切替
+- PNG 書き出しは Stage を図面の外接矩形で `toCanvas`。`name="export-hide"` のノードと Transformer を一時的に隠し、家具レイヤーを不透明にする
+- スマホでは作図モードを出さない（配置モードに戻す）
+
 ## Canvas Layer Order
 
 ```
 Konva Stage
-  FloorplanLayer    (間取り画像)
+  FloorplanLayer    (間取り画像。図面を背景にするときは非表示)
+  PlanLayer         (作図した図面 + 下敷き画像。作図モード、または配置モードで背景=図面のとき)
   FurnitureLayer    (家具 + Transformer)
   MeasureLayer      (寸法線・メモピン)
   RulerOverlay      (縮尺設定時のみ)
 HTML overlay (Stage 外)
   CSS グリッド div  (snapGrid.enabled 時のみ、固定表示)
-  CanvasModeBar     (右上: 配置/採寸 切替 + 戻す)
+  CanvasModeBar     (右上: 配置/採寸/作図 切替 + 戻す/やり直す)
   canvas-status     (ステータスバー)
 ```

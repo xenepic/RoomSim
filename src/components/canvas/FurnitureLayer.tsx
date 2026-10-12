@@ -42,7 +42,7 @@ export function FurnitureLayer({ stageScale, interactive, onFurnitureTap }: Furn
   }, []);
 
   return (
-    <Layer listening={interactive} opacity={interactive ? 1 : 0.35}>
+    <Layer listening={interactive} opacity={interactive ? 1 : 0.35} name="furniture-layer">
       {furniture.map((item) => (
         <FurnitureShape
           key={item.id}

@@ -239,3 +239,43 @@ export function snapDelta(edges: number[], lines: number[], thresholdCm: number,
 }
 
 export const roundCm = (v: number) => Math.round(v * 10) / 10;
+
+export type CmRect = { x: number; y: number; w: number; h: number };
+
+// Elements entirely inside the rect (marquee selection); doors/windows by their center
+export function elementsInRect(plan: Plan, rect: CmRect): PlanRef[] {
+  const inside = (p: CmPoint) => p.x >= rect.x && p.x <= rect.x + rect.w && p.y >= rect.y && p.y <= rect.y + rect.h;
+  const boxInside = (b: CmRect) => inside({ x: b.x, y: b.y }) && inside({ x: b.x + b.w, y: b.y + b.h });
+  const refs: PlanRef[] = [];
+  for (const r of plan.rooms) if (boxInside(r)) refs.push({ kind: 'room', id: r.id });
+  for (const w of plan.walls) if (inside(w.a) && inside(w.b)) refs.push({ kind: 'wall', id: w.id });
+  for (const f of plan.fixtures) if (boxInside(f)) refs.push({ kind: 'fixture', id: f.id });
+  for (const o of plan.openings) {
+    const f = hostFrame(plan, o.host);
+    if (f && inside(framePoint(f, o.offsetCm))) refs.push({ kind: 'opening', id: o.id });
+  }
+  return refs;
+}
+
+// Bounding box of the plan (walls included) and the furniture, or null if empty
+export function planBounds(plan: Plan, furniture: FurnitureItem[]): CmRect | null {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const add = (x: number, y: number, pad = 0) => {
+    x0 = Math.min(x0, x - pad); y0 = Math.min(y0, y - pad);
+    x1 = Math.max(x1, x + pad); y1 = Math.max(y1, y + pad);
+  };
+  for (const r of plan.rooms) {
+    const t = roomWallCm(plan, r);
+    add(r.x - t, r.y - t);
+    add(r.x + r.w + t, r.y + r.h + t);
+  }
+  for (const w of plan.walls) {
+    const t = wallCm(plan, w);
+    add(w.a.x, w.a.y, t);
+    add(w.b.x, w.b.y, t);
+  }
+  for (const f of plan.fixtures) { add(f.x, f.y); add(f.x + f.w, f.y + f.h); }
+  // Furniture: a circle around the center covers any rotation
+  for (const f of furniture) add(f.xCm, f.yCm, Math.hypot(f.widthCm, f.depthCm) / 2);
+  return x0 === Infinity ? null : { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}

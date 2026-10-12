@@ -18,6 +18,7 @@ interface OpeningShapeProps {
   frame: HostFrame;
   k: number;   // cm per screen px
   interactive: boolean;
+  draggable: boolean;
   selected: boolean;
   onClick?: (e: KonvaEventObject<MouseEvent>) => void;
   onDragStart?: (e: KonvaEventObject<DragEvent>) => void;
@@ -35,7 +36,7 @@ const line = (ctx: Context, x1: number, y1: number, x2: number, y2: number) => {
  * The opening is painted over the wall with the floor color, then the symbol is drawn
  * by a single sceneFunc shape (strokes in screen px via k).
  */
-export function OpeningShape({ opening: o, frame, k, interactive, selected, onClick, onDragStart, onDragMove }: OpeningShapeProps) {
+export function OpeningShape({ opening: o, frame, k, interactive, draggable, selected, onClick, onDragStart, onDragMove }: OpeningShapeProps) {
   const w = o.widthCm;
   const [b0, b1] = frame.band;
   const pos = framePoint(frame, o.offsetCm);
@@ -50,7 +51,7 @@ export function OpeningShape({ opening: o, frame, k, interactive, selected, onCl
   return (
     <Group
       x={pos.x} y={pos.y} rotation={frameAngleDeg(frame)}
-      draggable={interactive}
+      draggable={draggable}
       onClick={onClick} onDragStart={onDragStart} onDragMove={onDragMove}
     >
       {/* Hit area: the wall band plus some padding, so thin walls are easy to grab */}
@@ -63,7 +64,7 @@ export function OpeningShape({ opening: o, frame, k, interactive, selected, onCl
       {selected && (
         <Rect
           x={-w / 2 - 3 * k} y={b0 - 3 * k} width={w + 6 * k} height={b1 - b0 + 6 * k}
-          stroke={SELECT_COLOR} strokeWidth={2 * k} listening={false}
+          stroke={SELECT_COLOR} strokeWidth={2 * k} listening={false} name="export-hide"
         />
       )}
     </Group>

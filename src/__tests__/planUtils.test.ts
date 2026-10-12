@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import type { Plan, PlanOpening, PlanRoom } from '../types';
 import {
   clampOffset, deleteFromPlan, findNearestHost, fitOpenings, furnitureToMove, hostFrame,
-  makeEmptyPlan, snapDelta, snapLines, translatePlan,
+  elementsInRect, makeEmptyPlan, planBounds, snapDelta, snapLines, translatePlan,
 } from '../utils/planUtils';
 
 const room = (id: string, x: number, y: number, w: number, h: number): PlanRoom => ({ id, name: id, x, y, w, h });
@@ -129,5 +129,29 @@ describe('snapping', () => {
     expect(snapDelta([298], [], 8, 50)).toBe(2);
     // A snap line wins over an equally close grid line
     expect(snapDelta([103], [106], 8, 50)).toBe(3);
+  });
+});
+
+describe('elementsInRect / planBounds', () => {
+  const plan = planWith({
+    rooms: [room('a', 0, 0, 100, 100), room('b', 200, 0, 100, 100)],
+    walls: [{ id: 'w', a: { x: 10, y: 50 }, b: { x: 90, y: 50 } }],
+    fixtures: [{ id: 'f', kind: 'column', label: '柱', x: 250, y: 10, w: 30, h: 30 }],
+    openings: [door('d', 'b', 50)],
+  });
+
+  test('selects only what is entirely inside', () => {
+    const refs = elementsInRect(plan, { x: -5, y: -5, w: 120, h: 120 });
+    expect(refs).toEqual([{ kind: 'room', id: 'a' }, { kind: 'wall', id: 'w' }]);
+    // The door's center is on room b's top wall (y=0): enclosing it is enough
+    const refs2 = elementsInRect(plan, { x: 230, y: -5, w: 60, h: 50 });
+    expect(refs2).toEqual([{ kind: 'fixture', id: 'f' }, { kind: 'opening', id: 'd' }]);
+  });
+
+  test('bounds include walls and furniture', () => {
+    expect(planBounds(plan, [])).toEqual({ x: -10, y: -10, w: 320, h: 120 });
+    const furniture = [{ id: 'x', name: '', xCm: 400, yCm: 50, widthCm: 60, depthCm: 80, rotation: 0, color: '' }];
+    expect(planBounds(plan, furniture)!.w).toBe(460);   // -10 … 400 + 50
+    expect(planBounds(makeEmptyPlan(), [])).toBeNull();
   });
 });

@@ -18,6 +18,8 @@ import { snapToAxis } from '../../utils/measureUtils';
 export const WALL_COLOR = '#3F3F46';
 const SELECT_COLOR = '#2563EB';
 export const SNAP_PX = 8;   // snap distance on screen
+// Editing aids left out of the exported image (see exportPlanPng)
+export const EXPORT_HIDE = 'export-hide';
 
 export type PlanDraft =
   | { kind: 'rect'; x: number; y: number; w: number; h: number }
@@ -34,6 +36,10 @@ interface PlanLayerProps {
   underlay: LoadedFloorplan | null;   // floorplan image drawn over the plan (multiply)
   underlayOpacity: number;
   draft: PlanDraft;
+  // Shift held: a drag anywhere draws a selection marquee, so elements don't drag
+  marquee: boolean;
+  // True if the click ends a drawing/marquee gesture and must not select
+  consumeClick: () => boolean;
 }
 
 // Draw order paints floors over walls, so walls inside overlapping rooms (L shapes)
@@ -42,7 +48,9 @@ interface PlanLayerProps {
 // k converts screen px to cm for constant-size strokes and labels.
 // Only a handful of shapes per element and no strokes on filled shapes, to keep
 // pan/zoom cheap (the plan is also drawn in furniture mode).
-export function PlanLayer({ stageScale, interactive, openingsInteractive, editing, underlay, underlayOpacity, draft }: PlanLayerProps) {
+export function PlanLayer({
+  stageScale, interactive, openingsInteractive, editing, underlay, underlayOpacity, draft, marquee, consumeClick,
+}: PlanLayerProps) {
   const plan = useAppStore((s) => s.project.plan);
   const scale = useAppStore((s) => s.project.scale);
   const snapGrid = useAppStore((s) => s.project.snapGrid);
@@ -86,6 +94,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
 
   const handleClick = (ref: PlanRef) => (e: KonvaEventObject<MouseEvent>) => {
     e.cancelBubble = true;
+    if (consumeClick()) return;
     selectPlan(ref, e.evt.shiftKey);
   };
 
@@ -240,7 +249,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
               x={r.x} y={r.y} width={r.w} height={r.h} fill={FLOOR_COLOR}
               perfectDrawEnabled={false}
               listening={interactive}
-              draggable={interactive}
+              draggable={interactive && !marquee}
               onClick={handleClick(ref)}
               onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
               onTransformStart={handleTransformStart} onTransform={handleRectTransform('room', r.id)}
@@ -259,7 +268,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
               stroke={WALL_COLOR} strokeWidth={t} lineCap="square"
               hitStrokeWidth={Math.max(t, 14 * k)}
               listening={interactive}
-              draggable={interactive}
+              draggable={interactive && !marquee}
               onClick={handleClick(ref)}
               onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
             />
@@ -274,7 +283,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
               key={f.id} ref={setNode(f.id)}
               x={f.x} y={f.y} width={f.w} height={f.h} fill="rgba(0,0,0,0)"
               visible={interactive}
-              draggable={interactive}
+              draggable={interactive && !marquee}
               onClick={handleClick(ref)}
               onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
               onTransformStart={handleTransformStart} onTransform={handleRectTransform('fixture', f.id)}
@@ -289,6 +298,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
             <OpeningShape
               key={o.id} opening={o} frame={f} k={k}
               interactive={openingsInteractive}
+              draggable={openingsInteractive && !marquee}
               selected={editing && isSelected('opening', o.id)}
               onClick={handleClick({ kind: 'opening', id: o.id })}
               onDragStart={handleOpeningDragStart(o.id)}
@@ -330,11 +340,12 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
           // Multiply: the image's white background disappears, its lines darken the plan
           globalCompositeOperation="multiply"
           listening={false}
+          name={EXPORT_HIDE}
         />
       )}
 
       {editing && (
-        <Group scaleX={ppc} scaleY={ppc} listening={false}>
+        <Group scaleX={ppc} scaleY={ppc} listening={false} name={EXPORT_HIDE}>
           {[...plan.rooms.filter((r) => isSelected('room', r.id)), ...plan.fixtures.filter((f) => isSelected('fixture', f.id))].map((r) => (
             <Rect key={r.id} x={r.x} y={r.y} width={r.w} height={r.h} stroke={SELECT_COLOR} strokeWidth={2 * k} />
           ))}
@@ -356,7 +367,7 @@ export function PlanLayer({ stageScale, interactive, openingsInteractive, editin
         const w = plan.walls.find((x) => x.id === single.id);
         if (!w) return null;
         return (
-          <Group scaleX={ppc} scaleY={ppc}>
+          <Group scaleX={ppc} scaleY={ppc} name={EXPORT_HIDE}>
             {(['a', 'b'] as const).map((end) => (
               <Circle
                 key={end} x={w[end].x} y={w[end].y} radius={6 * k}

@@ -3,6 +3,7 @@ import type { PlanTool } from '../../types';
 import { SnapGridToggle } from '../toolbar/SnapGridToggle';
 import { NumField } from './NumField';
 import { MeasureComparison } from './MeasureComparison';
+import { exportPlanPng } from '../../utils/exportImage';
 import { DOOR_TYPES, FIXTURE_KINDS, WINDOW_TYPES } from '../../data/planKinds';
 
 const TOOLS: Array<{ id: PlanTool; label: string }> = [
@@ -15,7 +16,7 @@ const TOOLS: Array<{ id: PlanTool; label: string }> = [
 ];
 
 const HINTS: Record<PlanTool, string> = {
-  select: 'ドラッグで移動、ハンドルでサイズ変更。何もない所のドラッグで画面移動。',
+  select: 'ドラッグで移動、ハンドルでサイズ変更。何もない所のドラッグで画面移動、Shift+ドラッグで範囲選択。',
   room: 'ドラッグで部屋を描きます（クリックで 300×300）。',
   wall: 'ドラッグで壁を引きます（水平・垂直に吸着）。部屋で表せない間仕切りなどに。',
   door: '壁の近くをクリックして扉を置きます。続けて置けて、置いた扉・窓はそのままドラッグで動かせます（Esc で選択に戻る）。',
@@ -122,6 +123,17 @@ export function PlanTools() {
         </label>
       </div>
       <SnapGridToggle />
+      <div className="panel-section">
+        <h3>書き出し</h3>
+        <button
+          style={{ width: '100%' }}
+          disabled={plan.rooms.length + plan.walls.length + plan.fixtures.length === 0}
+          onClick={() => exportPlanPng(useAppStore.getState().project)}
+        >
+          PNG画像で保存
+        </button>
+        <p className="plan-note">図面と配置した家具を画像にします（選択表示・下敷き画像・寸法線は含みません）。</p>
+      </div>
     </>
   );
 }

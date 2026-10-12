@@ -32,7 +32,7 @@ export function PlanSelectionEditor() {
       </div>
       {selection.length === 0 ? (
         <div style={{ padding: 12, color: '#999', fontSize: 12 }}>
-          部屋・壁・扉などをクリックすると編集できます。Shift+クリックで複数選択。
+          部屋・壁・扉などをクリックすると編集できます。Shift+クリック、または Shift+ドラッグで囲んで複数選択。
         </div>
       ) : (
         <div className="plan-editor">

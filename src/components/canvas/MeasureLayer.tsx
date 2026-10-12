@@ -189,7 +189,7 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
     : undefined;
 
   return (
-    <Layer listening={interactive} opacity={interactive ? 1 : 0.75}>
+    <Layer listening={interactive} opacity={interactive ? 1 : 0.75} name="export-hide">
       {dimensions.map(renderDimension)}
       {interactive && selectedDim && renderHandles(selectedDim)}
       {memos.map(renderMemo)}
