@@ -3,6 +3,7 @@ import type { PlanFixture } from '../../types';
 import { FIXTURE_KINDS, getFixtureKind } from '../../data/planKinds';
 import { MIN_ROOM_CM, roundCm } from '../../utils/planUtils';
 import { NumField } from './NumField';
+import { MeasureLinkRow } from './MeasureLinkRow';
 
 export function FixtureEditor({ fixture: f }: { fixture: PlanFixture }) {
   const updateFixture = useAppStore((s) => s.updateFixture);
@@ -34,6 +35,8 @@ export function FixtureEditor({ fixture: f }: { fixture: PlanFixture }) {
         <NumField label="幅 (cm)" value={f.w} min={MIN_ROOM_CM} onChange={(v) => v && update('w', { w: v })} />
         <NumField label="奥行 (cm)" value={f.h} min={MIN_ROOM_CM} onChange={(v) => v && update('h', { h: v })} />
       </div>
+      <MeasureLinkRow target={{ kind: 'fixture', id: f.id }} field="w" />
+      <MeasureLinkRow target={{ kind: 'fixture', id: f.id }} field="h" />
       <div className="plan-field-row">
         <NumField label="X (cm)" value={f.x} onChange={(v) => v !== undefined && update('x', { x: v })} />
         <NumField label="Y (cm)" value={f.y} onChange={(v) => v !== undefined && update('y', { y: v })} />

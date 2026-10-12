@@ -57,6 +57,11 @@ export type MemoPin = {
 // so the plan lines up with furniture (also cm) whatever the scale setting is.
 export type CmPoint = { x: number; y: number };
 
+// Plan values linked to measured dimensions (Dimension ids), for comparison.
+// Measure data is only read, never changed by the plan.
+export type MeasuredField = 'w' | 'h' | 'width' | 'length';
+export type MeasureLinks = Partial<Record<MeasuredField, string>>;
+
 // A rectangular room. x/y/w/h are the INTERIOR (usable) area; walls are drawn outside it.
 // L-shaped rooms are two overlapping rooms: floors are painted over walls, so the
 // walls inside the overlap disappear.
@@ -68,6 +73,7 @@ export type PlanRoom = {
   w: number;
   h: number;
   wallCm?: number;   // undefined = plan.wallCm
+  measured?: MeasureLinks;   // w, h
 };
 
 // A free-standing wall segment (for what rooms can't express)
@@ -76,6 +82,7 @@ export type PlanWall = {
   a: CmPoint;
   b: CmPoint;
   thicknessCm?: number;   // undefined = plan.wallCm
+  measured?: MeasureLinks;   // length
 };
 
 export type RoomSide = 'top' | 'right' | 'bottom' | 'left';
@@ -93,6 +100,7 @@ type OpeningBase = {
   host: WallHost;
   offsetCm: number;   // from the host segment's start to the opening's CENTER
   widthCm: number;
+  measured?: MeasureLinks;   // width
 };
 export type PlanDoor = OpeningBase & {
   type: 'door';
@@ -119,6 +127,7 @@ export type PlanFixture = {
   y: number;
   w: number;
   h: number;
+  measured?: MeasureLinks;   // w, h
 };
 
 export type Plan = {
@@ -265,6 +274,9 @@ export type AppStore = AppState & {
   updateFixture: (id: string, changes: Partial<Omit<PlanFixture, 'id'>>, opts?: UndoOption) => void;
   deletePlanSelection: () => void;
   duplicatePlanSelection: () => void;
+  // Link a plan value to a measured dimension (null = unlink); apply = also set the
+  // plan value to the measured one
+  linkMeasure: (ref: PlanRef, field: MeasuredField, dimensionId: string | null, apply?: boolean) => void;
   movePlanSelection: (dx: number, dy: number, opts?: UndoOption) => void;
   // Live drag: re-apply the move to the state captured at drag start (no undo push)
   movePlanSelectionFrom: (base: PlanSnapshot, dx: number, dy: number) => void;

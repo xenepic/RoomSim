@@ -1,6 +1,7 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { PlanWall } from '../../types';
 import { NumField } from './NumField';
+import { MeasureLinkRow } from './MeasureLinkRow';
 import { MIN_WALL_CM, roundCm } from '../../utils/planUtils';
 
 export function WallEditor({ wall }: { wall: PlanWall }) {
@@ -26,6 +27,7 @@ export function WallEditor({ wall }: { wall: PlanWall }) {
           onChange={(v) => update('t', { thicknessCm: v })}
         />
       </div>
+      <MeasureLinkRow target={{ kind: 'wall', id: wall.id }} field="length" />
       <p className="plan-note">端の○をドラッグで長さ・向きを変更（水平・垂直に吸着）。部屋で表せない間仕切りなどに使います。</p>
     </>
   );

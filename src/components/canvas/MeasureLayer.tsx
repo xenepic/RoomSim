@@ -1,6 +1,7 @@
 import { Layer, Group, Line, Circle, Rect, Text } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
+import { linkedDimensionIds } from '../../utils/planMeasure';
 import { formatCm, snapToAxis } from '../../utils/measureUtils';
 import { getPinKind } from '../../data/pinKinds';
 import type { Dimension, ImagePoint, MemoPin } from '../../types';
@@ -70,6 +71,11 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
   const updateDimension = useAppStore((s) => s.updateDimension);
   const updateMemo = useAppStore((s) => s.updateMemo);
   const pushMeasureUndo = useAppStore((s) => s.pushMeasureUndo);
+  // Plan mode: lines linked to the selected plan element are highlighted
+  const mode = useAppStore((s) => s.mode);
+  const plan = useAppStore((s) => s.project.plan);
+  const planSelection = useAppStore((s) => s.planSelection);
+  const linked = mode === 'plan' && plan && planSelection.length === 1 ? linkedDimensionIds(plan, planSelection[0]) : [];
 
   const k = 1 / stageScale;
   // Line taps only select in the select tool, so placing points is never blocked
@@ -77,7 +83,7 @@ export function MeasureLayer({ stageScale, interactive }: MeasureLayerProps) {
   const pinsListening = interactive && tool !== 'dimension';
 
   const renderDimension = (d: Dimension) => {
-    const selected = selection?.kind === 'dimension' && selection.id === d.id;
+    const selected = interactive ? selection?.kind === 'dimension' && selection.id === d.id : linked.includes(d.id);
     const color = selected ? COLOR_SELECTED : d.valueCm === null ? COLOR_UNMEASURED : COLOR_MEASURED;
     const { nx, ny } = labelNormal(d.a, d.b);
     const tick = (p: ImagePoint) => [p.x - nx * TICK_PX * k, p.y - ny * TICK_PX * k, p.x + nx * TICK_PX * k, p.y + ny * TICK_PX * k];

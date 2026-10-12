@@ -1,6 +1,7 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { PlanRoom } from '../../types';
 import { NumField } from './NumField';
+import { MeasureLinkRow } from './MeasureLinkRow';
 import { MIN_ROOM_CM } from '../../utils/planUtils';
 
 export function RoomEditor({ room }: { room: PlanRoom }) {
@@ -18,6 +19,8 @@ export function RoomEditor({ room }: { room: PlanRoom }) {
         <NumField label="幅 (cm)" value={room.w} min={MIN_ROOM_CM} onChange={(v) => v && update('w', { w: v })} />
         <NumField label="奥行 (cm)" value={room.h} min={MIN_ROOM_CM} onChange={(v) => v && update('h', { h: v })} />
       </div>
+      <MeasureLinkRow target={{ kind: 'room', id: room.id }} field="w" />
+      <MeasureLinkRow target={{ kind: 'room', id: room.id }} field="h" />
       <div className="plan-field-row">
         <NumField label="X (cm)" value={room.x} onChange={(v) => v !== undefined && update('x', { x: v })} />
         <NumField label="Y (cm)" value={room.y} onChange={(v) => v !== undefined && update('y', { y: v })} />

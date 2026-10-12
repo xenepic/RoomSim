@@ -3,6 +3,7 @@ import type { PlanOpening } from '../../types';
 import { DOOR_TYPES, WINDOW_TYPES, getWindowType } from '../../data/planKinds';
 import { hostFrame, MIN_OPENING_CM } from '../../utils/planUtils';
 import { NumField } from './NumField';
+import { MeasureLinkRow } from './MeasureLinkRow';
 
 export function OpeningEditor({ opening: o }: { opening: PlanOpening }) {
   const updateOpening = useAppStore((s) => s.updateOpening);
@@ -48,6 +49,7 @@ export function OpeningEditor({ opening: o }: { opening: PlanOpening }) {
         />
       </div>
       {toEnd !== undefined && <p className="plan-note" style={{ marginTop: -4 }}>反対側の端まで {toEnd}cm</p>}
+      <MeasureLinkRow target={{ kind: 'opening', id: o.id }} field="width" />
 
       {o.type === 'door' && o.door !== 'opening' && (
         <div className="plan-toggle-row">

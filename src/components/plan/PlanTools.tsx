@@ -2,6 +2,7 @@ import { useAppStore } from '../../store/useAppStore';
 import type { PlanTool } from '../../types';
 import { SnapGridToggle } from '../toolbar/SnapGridToggle';
 import { NumField } from './NumField';
+import { MeasureComparison } from './MeasureComparison';
 import { DOOR_TYPES, FIXTURE_KINDS, WINDOW_TYPES } from '../../data/planKinds';
 
 const TOOLS: Array<{ id: PlanTool; label: string }> = [
@@ -79,6 +80,8 @@ export function PlanTools() {
         )}
         <p className="plan-note">{HINTS[tool]}</p>
       </div>
+
+      <MeasureComparison />
 
       <div className="panel-section">
         <h3>下敷き画像</h3>

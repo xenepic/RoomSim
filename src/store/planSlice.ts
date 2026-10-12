@@ -6,6 +6,7 @@ import {
   clampOffset, deleteFromPlan, findNearestHost, fitOpenings, furnitureToMove, hostFrame, translatePlan,
 } from '../utils/planUtils';
 import { getDoorType, getFixtureKind, getWindowType } from '../data/planKinds';
+import { setMeasureLink, setPlanValue } from '../utils/planMeasure';
 
 const MAX_UNDO = 50;
 const DUPLICATE_OFFSET_CM = 20;
@@ -17,7 +18,7 @@ export type PlanSlice = Pick<AppStore,
   | 'selectPlan' | 'setPlanSelection' | 'updatePlanSettings'
   | 'addRoom' | 'updateRoom' | 'addWall' | 'updateWall' | 'placeOpening' | 'updateOpening'
   | 'addFixture' | 'updateFixture' | 'deletePlanSelection' | 'duplicatePlanSelection'
-  | 'movePlanSelection' | 'movePlanSelectionFrom' | 'pushPlanUndo' | 'undoPlan' | 'redoPlan'>;
+  | 'linkMeasure' | 'movePlanSelection' | 'movePlanSelectionFrom' | 'pushPlanUndo' | 'undoPlan' | 'redoPlan'>;
 
 // Plan UI state cleared whenever the project is swapped or cleared
 export const clearedPlanSessionState = {
@@ -219,6 +220,14 @@ export const createPlanSlice: StateCreator<AppStore, [], [], PlanSlice> = (set, 
         };
       });
       set({ planSelection: next });
+    },
+
+    linkMeasure: (ref, field, dimensionId, apply = false) => {
+      const value = dimensionId ? get().project.dimensions.find((d) => d.id === dimensionId)?.valueCm : null;
+      commit((plan) => {
+        const linked = setMeasureLink(plan, ref, field, dimensionId);
+        return apply && value != null ? setPlanValue(linked, ref, field, value) : linked;
+      });
     },
 
     movePlanSelection: (dx, dy, opts) => {

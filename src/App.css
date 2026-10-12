@@ -343,3 +343,24 @@ button.pin-kind.active { font-weight: 600; border-width: 2px; padding: 3px 9px 3
 .plan-kind-picker button.active { border-color: #2563EB; color: #2563EB; font-weight: 600; background: #EFF6FF; }
 .plan-toggle-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .plan-toggle-row button { flex: 1; font-size: 12px; white-space: nowrap; }
+
+/* Plan ↔ measure links */
+.measure-link { margin-top: -4px; }
+.measure-link select { font-size: 11px; color: #666; padding: 3px 4px; }
+.measure-link.linked { display: flex; align-items: center; gap: 4px; font-size: 11px; line-height: 1.4; }
+.measure-link-text { flex: 1; min-width: 0; }
+.measure-link.match .measure-link-text { color: #15803D; }
+.measure-link.diff .measure-link-text { color: #C2410C; }
+.measure-link.missing .measure-link-text,
+.measure-link.unmeasured .measure-link-text { color: #888; }
+.measure-link.linked button { font-size: 11px; padding: 2px 6px; flex: none; }
+.plan-compare-row {
+  display: flex; gap: 6px; width: 100%; text-align: left; font-size: 11px;
+  padding: 4px 6px; border: none; border-radius: 4px; background: none; line-height: 1.4;
+}
+.plan-compare-row:hover { background: #EFF6FF; }
+.plan-compare-row .name { flex: none; color: #333; font-weight: 600; }
+.plan-compare-row .status { flex: 1; min-width: 0; text-align: right; }
+.plan-compare-row.match .status { color: #15803D; }
+.plan-compare-row.diff .status { color: #C2410C; }
+.plan-compare-row.missing .status, .plan-compare-row.unmeasured .status { color: #888; }
