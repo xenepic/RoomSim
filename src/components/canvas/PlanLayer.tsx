@@ -25,6 +25,9 @@ export type PlanDraft =
 interface PlanLayerProps {
   stageScale: number;
   interactive: boolean;   // plan mode with the select tool: elements can be selected/moved
+  // Doors/windows can be selected/moved (also with the door/window tools, so a
+  // just-placed one can be adjusted without switching tools)
+  openingsInteractive: boolean;
   editing: boolean;       // plan mode (selection outlines, draft)
   underlay: LoadedFloorplan | null;   // floorplan image drawn over the plan (multiply)
   underlayOpacity: number;
@@ -37,7 +40,7 @@ interface PlanLayerProps {
 // k converts screen px to cm for constant-size strokes and labels.
 // Only a handful of shapes per element and no strokes on filled shapes, to keep
 // pan/zoom cheap (the plan is also drawn in furniture mode).
-export function PlanLayer({ stageScale, interactive, editing, underlay, underlayOpacity, draft }: PlanLayerProps) {
+export function PlanLayer({ stageScale, interactive, openingsInteractive, editing, underlay, underlayOpacity, draft }: PlanLayerProps) {
   const plan = useAppStore((s) => s.project.plan);
   const scale = useAppStore((s) => s.project.scale);
   const snapGrid = useAppStore((s) => s.project.snapGrid);
@@ -183,7 +186,7 @@ export function PlanLayer({ stageScale, interactive, editing, underlay, underlay
   const labelScale = { scaleX: k, scaleY: k };
 
   return (
-    <Layer listening={interactive}>
+    <Layer listening={interactive || openingsInteractive}>
       <Group ref={groupRef} scaleX={ppc} scaleY={ppc}>
         {/* Walls: one filled rect per room, extending outside the interior */}
         {plan.rooms.map((r) => {
@@ -201,6 +204,7 @@ export function PlanLayer({ stageScale, interactive, editing, underlay, underlay
               key={r.id} ref={setNode(r.id)}
               x={r.x} y={r.y} width={r.w} height={r.h} fill={FLOOR_COLOR}
               perfectDrawEnabled={false}
+              listening={interactive}
               draggable={interactive}
               onClick={handleClick(ref)}
               onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
@@ -215,7 +219,7 @@ export function PlanLayer({ stageScale, interactive, editing, underlay, underlay
           return (
             <OpeningShape
               key={o.id} opening={o} frame={f} k={k}
-              interactive={interactive}
+              interactive={openingsInteractive}
               selected={editing && isSelected('opening', o.id)}
               onClick={handleClick({ kind: 'opening', id: o.id })}
               onDragStart={handleOpeningDragStart(o.id)}

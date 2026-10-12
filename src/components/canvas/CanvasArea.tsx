@@ -221,6 +221,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
           <PlanLayer
             stageScale={stageScale}
             interactive={mode === 'plan' && planTool === 'select'}
+            openingsInteractive={mode === 'plan' && (planTool === 'select' || planTool === 'door' || planTool === 'window')}
             editing={mode === 'plan'}
             underlay={underlay}
             underlayOpacity={plan.underlay.opacity}

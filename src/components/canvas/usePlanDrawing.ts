@@ -50,6 +50,8 @@ export function usePlanDrawing(stageScale: number, ppc: number) {
   const onPointerDown = (e: KonvaEventObject<PointerEvent>) => {
     if (e.evt.button !== 0) return;
     swallowClickRef.current = false;
+    // Presses on an existing door/window select/drag it instead of placing a new one
+    if (e.target !== e.target.getStage()) return;
     const p = pointerCm(e);
     if (!p) return;
     startRef.current = { raw: p, snapped: snapPoint(p) };
