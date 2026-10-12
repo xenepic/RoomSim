@@ -1,5 +1,6 @@
 import type { CalibrationMode } from '../../App';
 import { ImageUploader } from './ImageUploader';
+import { BackgroundToggle } from './BackgroundToggle';
 import { FurniturePresetList } from './FurniturePresetList';
 import { ScaleCalibrator } from './ScaleCalibrator';
 import { SnapGridToggle } from './SnapGridToggle';
@@ -20,6 +21,7 @@ export function Toolbar({
   return (
     <>
       <ImageUploader />
+      <BackgroundToggle />
       <FurniturePresetList />
       <ScaleCalibrator
         calibrationMode={calibrationMode}

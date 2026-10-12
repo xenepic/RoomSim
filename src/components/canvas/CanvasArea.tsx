@@ -12,6 +12,7 @@ import { RulerOverlay } from './RulerOverlay';
 import { MeasureLayer } from './MeasureLayer';
 import { useAppStore } from '../../store/useAppStore';
 import { getPixelsPerCm } from '../../utils/scaleUtils';
+import { effectiveBackground } from '../../utils/projectUtils';
 
 interface CanvasAreaProps {
   calibrationMode: CalibrationMode;
@@ -41,7 +42,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
   const viewFocusRequest = useAppStore((s) => s.viewFocusRequest);
   const dimensions = useAppStore((s) => s.project.dimensions);
   const plan = useAppStore((s) => s.project.plan);
-  const background = useAppStore((s) => s.project.background);
+  const background = useAppStore((s) => effectiveBackground(s.project));
   const planTool = useAppStore((s) => s.planTool);
   const selectPlan = useAppStore((s) => s.selectPlan);
   const floorplanImage = useFloorplanImage();
@@ -222,7 +223,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
             interactive={mode === 'plan' && planTool === 'select'}
             editing={mode === 'plan'}
             underlay={underlay}
-            underlayOpacity={mode === 'plan' ? plan.underlay.opacity : 0.35}
+            underlayOpacity={plan.underlay.opacity}
             draft={planDrawing.draft}
           />
         )}
@@ -258,6 +259,8 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
           ? `部屋 ${plan?.rooms.length ?? 0}　縮尺: ${ppc.toFixed(2)} px/cm`
           : mode === 'measure'
           ? `寸法線 ${dimensions.length}本（未測定 ${dimensions.filter((d) => d.valueCm === null).length}）`
+          : showPlan
+            ? '作成した図面を表示中'
           : scale
             ? `縮尺: ${scale.pixelsPerCm.toFixed(2)} px/cm (${scale.accuracy === 'estimated' ? '推定' : '実測'})`
             : '縮尺未設定（参考表示）'}

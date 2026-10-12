@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import { effectiveBackground } from '../../utils/projectUtils';
 import { FURNITURE_PRESETS, PRESET_CATEGORIES } from '../../data/furniturePresets';
 import type { FurniturePreset } from '../../types';
 
@@ -8,8 +9,10 @@ const DEFAULT_PLACE_CM = 50;
 
 export function FurniturePresetList() {
   const addFurniture = useAppStore((s) => s.addFurniture);
-  const hasFloorplan = useAppStore((s) => !!s.project.floorplan);
-  const hasScale = useAppStore((s) => !!s.project.scale);
+  // Furniture needs something to place it on: the image or a drawn plan
+  const hasFloorplan = useAppStore((s) => !!s.project.floorplan || !!s.project.plan?.rooms.length);
+  // A drawn plan is in cm like furniture, so the scale only matters over the image
+  const hasScale = useAppStore((s) => !!s.project.scale || effectiveBackground(s.project) === 'plan');
   const projectRev = useAppStore((s) => s.projectRev);
   const viewCenterCm = useAppStore((s) => s.viewCenterCm);
   const [customName, setCustomName] = useState('');
@@ -80,7 +83,7 @@ export function FurniturePresetList() {
 
       {!hasFloorplan && (
         <p style={{ fontSize: 11, color: '#aaa', margin: '0 0 8px' }}>
-          先に間取り画像をアップロードしてください
+          先に間取り画像をアップロードするか、作図モードで図面を作成してください
         </p>
       )}
 

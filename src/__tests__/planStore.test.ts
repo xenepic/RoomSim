@@ -107,3 +107,14 @@ describe('plan mode', () => {
     expect(s().planSelection).toEqual([]);
   });
 });
+
+describe('effectiveBackground', () => {
+  test('defaults to the plan once it has rooms, unless chosen', async () => {
+    const { effectiveBackground } = await import('../utils/projectUtils');
+    expect(effectiveBackground(s().project)).toBe('image');
+    s().addRoom({ x: 0, y: 0, w: 300, h: 200 });
+    expect(effectiveBackground(s().project)).toBe('plan');
+    s().setBackground('image');
+    expect(effectiveBackground(s().project)).toBe('image');
+  });
+});

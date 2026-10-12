@@ -7,6 +7,7 @@ import { ProjectBar } from './components/toolbar/ProjectBar';
 import { CanvasArea } from './components/canvas/CanvasArea';
 import { PropertiesPanel } from './components/properties/PropertiesPanel';
 import { ImageUploader } from './components/toolbar/ImageUploader';
+import { BackgroundToggle } from './components/toolbar/BackgroundToggle';
 import { FurniturePresetList } from './components/toolbar/FurniturePresetList';
 import { ScaleCalibrator } from './components/toolbar/ScaleCalibrator';
 import { SnapGridToggle } from './components/toolbar/SnapGridToggle';
@@ -207,7 +208,7 @@ function App() {
   );
 
   const mobileSheetContent: Record<MobileTab, React.ReactNode> = {
-    image: <ImageUploader />,
+    image: <><ImageUploader /><BackgroundToggle /></>,
     furniture: <FurniturePresetList />,
     scale: <><ScaleCalibrator {...calibratorProps} /><SnapGridToggle /></>,
     edit: <PropertiesPanel />,

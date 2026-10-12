@@ -37,3 +37,9 @@ function normalizePlan(raw: Partial<Plan>): Plan {
     underlay: { ...base.underlay, ...raw.underlay },
   };
 }
+
+// Furniture mode background: the user's choice, or the drawn plan once it has rooms
+export function effectiveBackground(project: Pick<Project, 'background' | 'plan'>): 'image' | 'plan' {
+  if (!project.plan) return 'image';
+  return project.background ?? (project.plan.rooms.length > 0 ? 'plan' : 'image');
+}
