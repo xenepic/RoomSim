@@ -16,11 +16,55 @@ import { MeasureTools } from './components/measure/MeasureTools';
 import { MeasureHint } from './components/measure/MeasureHint';
 import { MeasureList } from './components/measure/MeasureList';
 import { MeasureSelectionEditor } from './components/measure/MeasureSelectionEditor';
+import { PlanTools } from './components/plan/PlanTools';
+import { PlanSelectionEditor } from './components/plan/PlanSelectionEditor';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { initPersistence } from './store/persistence';
 
 // CalibrationMode is exported so toolbar and canvas components can share the type.
 export type CalibrationMode = 'ruler' | 'tatami' | null;
+
+const NUDGE: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+};
+
+function handlePlanKey(e: KeyboardEvent) {
+  const state = useAppStore.getState();
+  const mod = e.ctrlKey || e.metaKey;
+  const key = e.key.toLowerCase();
+  const sel = state.planSelection;
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    state.deletePlanSelection();
+  } else if (mod && key === 'z') {
+    e.preventDefault();
+    if (e.shiftKey) state.redoPlan(); else state.undoPlan();
+  } else if (mod && key === 'y') {
+    e.preventDefault();
+    state.redoPlan();
+  } else if (mod && key === 'c') {
+    e.preventDefault();
+    state.duplicatePlanSelection();
+  } else if (mod && key === 'a') {
+    e.preventDefault();
+    const plan = state.project.plan;
+    if (!plan) return;
+    // Openings on rooms/walls move with them, so they don't need selecting
+    state.setPlanSelection([
+      ...plan.rooms.map((r) => ({ kind: 'room' as const, id: r.id })),
+      ...plan.walls.map((w) => ({ kind: 'wall' as const, id: w.id })),
+      ...plan.fixtures.map((f) => ({ kind: 'fixture' as const, id: f.id })),
+    ]);
+  } else if (e.key === 'Escape') {
+    if (state.planTool !== 'select') state.setPlanTool('select');
+    else state.selectPlan(null);
+  } else if (NUDGE[e.key] && sel.length > 0) {
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    const [dx, dy] = NUDGE[e.key];
+    // Consecutive nudges of the same selection are one undo step
+    state.movePlanSelection(dx * step, dy * step, { undoKey: `nudge:${sel.map((r) => r.id).join()}` });
+  }
+}
 
 // Phones (portrait or landscape) get the full-screen canvas + bottom sheet layout
 const MOBILE_QUERY = '(max-width: 767px), (max-height: 500px)';
@@ -37,11 +81,17 @@ function App() {
     if (!selectedId) setActiveTab((tab) => (tab === 'edit' ? null : tab));
   }, [selectedId]);
 
+  // Plan mode is desktop-only for now
+  useEffect(() => {
+    if (isMobile && mode === 'plan') useAppStore.getState().setMode('furniture');
+  }, [isMobile, mode]);
+
   // Restore the last-opened project and start autosaving
   useEffect(() => { void initPersistence(); }, []);
 
   // Keyboard shortcuts — furniture mode: Delete = remove, Ctrl+C = duplicate;
-  // measure mode: Delete = remove, Ctrl+Z = undo, Escape = cancel/deselect
+  // measure mode: Delete = remove, Ctrl+Z = undo, Escape = cancel/deselect;
+  // plan mode: also Ctrl+Shift+Z / Ctrl+Y = redo, Ctrl+A = select all, arrows = nudge
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't fire when the user is typing in a form field
@@ -49,6 +99,10 @@ function App() {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
       const state = useAppStore.getState();
+      if (state.mode === 'plan') {
+        handlePlanKey(e);
+        return;
+      }
       if (state.mode === 'measure') {
         const sel = state.measureSelection;
         if ((e.key === 'Delete' || e.key === 'Backspace') && sel) {
@@ -177,7 +231,9 @@ function App() {
           <div className="left-panel-scroll">
             {mode === 'measure'
               ? <><MeasureTools /><MeasureList /></>
-              : <Toolbar {...calibratorProps} />}
+              : mode === 'plan'
+                ? <PlanTools />
+                : <Toolbar {...calibratorProps} />}
           </div>
           <ProjectBar />
           {portalLink}
@@ -190,11 +246,13 @@ function App() {
           onTatamiRect={handleTatamiRect}
           onFurnitureTap={isMobile ? () => setActiveTab('edit') : undefined}
         />
-        <CanvasModeBar />
+        <CanvasModeBar allowPlan={!isMobile} />
       </div>
       {isMobile ? null : (
         <div className="right-panel">
-          {mode === 'measure' ? <MeasureSelectionEditor /> : <PropertiesPanel />}
+          {mode === 'measure' ? <MeasureSelectionEditor />
+            : mode === 'plan' ? <PlanSelectionEditor />
+              : <PropertiesPanel />}
         </div>
       )}
       {isMobile && mobileSheet ? (

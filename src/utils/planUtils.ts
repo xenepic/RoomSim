@@ -205,6 +205,22 @@ export function snapLines(plan: Plan, exclude: PlanRef[]): SnapLines {
   return { xs, ys };
 }
 
+// Edges of the selected elements, which snap to the other elements' lines while moving
+export function selectionEdges(plan: Plan, refs: PlanRef[]): SnapLines {
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const r of [...plan.rooms.filter((r) => has(refs, 'room', r.id)), ...plan.fixtures.filter((f) => has(refs, 'fixture', f.id))]) {
+    xs.push(r.x, r.x + r.w);
+    ys.push(r.y, r.y + r.h);
+  }
+  for (const w of plan.walls) {
+    if (!has(refs, 'wall', w.id)) continue;
+    xs.push(w.a.x, w.b.x);
+    ys.push(w.a.y, w.b.y);
+  }
+  return { xs, ys };
+}
+
 /**
  * The correction that brings the closest of `edges` onto a snap line (or the grid),
  * or 0 if none is within the threshold. Snap lines win over the grid on ties.

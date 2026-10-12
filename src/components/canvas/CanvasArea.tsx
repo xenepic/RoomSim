@@ -4,7 +4,9 @@ import type Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { DD } from 'konva/lib/DragAndDrop';
 import type { CalibrationMode } from '../../App';
-import { FloorplanLayer } from './FloorplanLayer';
+import { FloorplanLayer, useFloorplanImage } from './FloorplanLayer';
+import { PlanLayer } from './PlanLayer';
+import { usePlanDrawing } from './usePlanDrawing';
 import { FurnitureLayer } from './FurnitureLayer';
 import { RulerOverlay } from './RulerOverlay';
 import { MeasureLayer } from './MeasureLayer';
@@ -38,8 +40,23 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
   const placeMeasurePoint = useAppStore((s) => s.placeMeasurePoint);
   const viewFocusRequest = useAppStore((s) => s.viewFocusRequest);
   const dimensions = useAppStore((s) => s.project.dimensions);
+  const plan = useAppStore((s) => s.project.plan);
+  const background = useAppStore((s) => s.project.background);
+  const planTool = useAppStore((s) => s.planTool);
+  const selectPlan = useAppStore((s) => s.selectPlan);
+  const floorplanImage = useFloorplanImage();
 
   const ppc = getPixelsPerCm(scale);
+  const planDrawing = usePlanDrawing(stageScale, ppc);
+  // Plan mode tools other than select draw on the canvas instead of panning it
+  const isPlanDrawing = mode === 'plan' && planTool !== 'select';
+
+  // The drawn plan replaces the image in plan mode, and in furniture mode when chosen
+  // as the background. Measure mode always shows the image (measurements are on it).
+  const showPlan = !!plan && (mode === 'plan' || (mode === 'furniture' && background === 'plan'));
+  const underlay = !plan || !showPlan ? null
+    : mode === 'plan' ? (plan.underlay.visible ? floorplanImage : null)
+      : plan.underlay.inFurniture ? floorplanImage : null;
   const gridSpacingPx = snapGrid.sizeCm * ppc * stageScale;
   const showGrid = snapGrid.enabled && gridSpacingPx >= 15;
   const bgOffsetX = ((stagePos.x % gridSpacingPx) + gridSpacingPx) % gridSpacingPx;
@@ -163,11 +180,14 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
 
   // Tap on empty canvas: deselect furniture, or place a point in measure mode
   const handleStageClick = (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+    if (planDrawing.consumeClick()) return;
     const stage = e.target.getStage();
     if (e.target !== stage) return;
     if (mode === 'measure') {
       const point = stage.getRelativePointerPosition();
       if (point) placeMeasurePoint(point);
+    } else if (mode === 'plan') {
+      selectPlan(null);
     } else {
       selectFurniture(null);
     }
@@ -179,7 +199,7 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
   };
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', cursor: isPlanDrawing ? 'crosshair' : undefined }}>
       <Stage
         ref={stageRef}
         width={size.width}
@@ -188,13 +208,24 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
         scaleY={stageScale}
         x={stagePos.x}
         y={stagePos.y}
-        draggable={calibrationMode === null}
+        draggable={calibrationMode === null && !isPlanDrawing}
         onWheel={handleWheel}
         onClick={handleStageClick}
         onTap={handleStageClick}
         onDragEnd={handleStageDragEnd}
+        {...(isPlanDrawing ? planDrawing.handlers : {})}
       >
-        <FloorplanLayer />
+        <FloorplanLayer loaded={showPlan ? null : floorplanImage} />
+        {showPlan && (
+          <PlanLayer
+            stageScale={stageScale}
+            interactive={mode === 'plan' && planTool === 'select'}
+            editing={mode === 'plan'}
+            underlay={underlay}
+            underlayOpacity={mode === 'plan' ? plan.underlay.opacity : 0.35}
+            draft={planDrawing.draft}
+          />
+        )}
         <FurnitureLayer
           stageScale={stageScale} stagePos={stagePos} canvasSize={size}
           interactive={mode === 'furniture'} onFurnitureTap={onFurnitureTap}
@@ -223,7 +254,9 @@ export function CanvasArea({ calibrationMode, onRulerPoint, onTatamiRect, onFurn
       )}
 
       <div className="canvas-status">
-        {mode === 'measure'
+        {mode === 'plan'
+          ? `部屋 ${plan?.rooms.length ?? 0}　縮尺: ${ppc.toFixed(2)} px/cm`
+          : mode === 'measure'
           ? `寸法線 ${dimensions.length}本（未測定 ${dimensions.filter((d) => d.valueCm === null).length}）`
           : scale
             ? `縮尺: ${scale.pixelsPerCm.toFixed(2)} px/cm (${scale.accuracy === 'estimated' ? '推定' : '実測'})`
