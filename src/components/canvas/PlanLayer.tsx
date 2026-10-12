@@ -5,13 +5,15 @@ import type { KonvaEventObject } from 'konva/lib/Node';
 import { useAppStore } from '../../store/useAppStore';
 import { getPixelsPerCm } from '../../utils/scaleUtils';
 import {
+  clampOffset, findNearestHost, framePoint, hostFrame, projectOnFrame, sameHost,
   MIN_ROOM_CM, roomWallCm, roundCm, selectionEdges, snapDelta, snapLines, type SnapLines,
 } from '../../utils/planUtils';
 import type { CmPoint, PlanRef, PlanSnapshot } from '../../types';
 import type { LoadedFloorplan } from './FloorplanLayer';
+import { FLOOR_COLOR, OpeningShape } from './PlanOpeningShape';
+import { getWindowType } from '../../data/planKinds';
 
 export const WALL_COLOR = '#3F3F46';
-export const FLOOR_COLOR = '#FFFFFF';
 const SELECT_COLOR = '#2563EB';
 export const SNAP_PX = 8;   // snap distance on screen
 
@@ -42,6 +44,7 @@ export function PlanLayer({ stageScale, interactive, editing, underlay, underlay
   const selection = useAppStore((s) => s.planSelection);
   const selectPlan = useAppStore((s) => s.selectPlan);
   const updateRoom = useAppStore((s) => s.updateRoom);
+  const updateOpening = useAppStore((s) => s.updateOpening);
 
   const ppc = getPixelsPerCm(scale);
   const k = 1 / (ppc * stageScale);
@@ -142,6 +145,41 @@ export function PlanLayer({ stageScale, interactive, editing, underlay, underlay
     updateRoom(id, rect, { undoKey: false });
   };
 
+  // Doors/windows slide along their wall; pulled well away from it, they jump to
+  // the wall nearest to the pointer
+  const handleOpeningDragStart = (id: string) => (e: KonvaEventObject<DragEvent>) => {
+    const st = useAppStore.getState();
+    if (!(st.planSelection.length === 1 && st.planSelection[0].id === id)) st.setPlanSelection([{ kind: 'opening', id }]);
+    st.pushPlanUndo();
+    e.cancelBubble = true;
+  };
+
+  const handleOpeningDragMove = (id: string) => (e: KonvaEventObject<DragEvent>) => {
+    const p = useAppStore.getState().project.plan;
+    const o = p?.openings.find((x) => x.id === id);
+    const node = e.target;
+    const f = o && hostFrame(p!, o.host);
+    if (!p || !o || !f) return;
+    const pointer = groupRef.current?.getRelativePointerPosition();
+    const away = pointer
+      ? Math.abs((pointer.x - f.a.x) * f.normal.x + (pointer.y - f.a.y) * f.normal.y - (f.band[0] + f.band[1]) / 2)
+      : 0;
+    if (pointer && away > (f.band[1] - f.band[0]) / 2 + 30 * k) {
+      const hit = findNearestHost(p, pointer, 20 * k);
+      const nf = hit && hostFrame(p, hit.host);
+      if (hit && nf && !sameHost(hit.host, o.host)) {
+        const widthCm = Math.min(o.widthCm, nf.len);
+        const offsetCm = clampOffset(nf.len, widthCm, Math.round(hit.offsetCm));
+        node.position(framePoint(nf, offsetCm));
+        updateOpening(id, { host: hit.host, offsetCm, widthCm }, { undoKey: false });
+        return;
+      }
+    }
+    const offsetCm = clampOffset(f.len, o.widthCm, Math.round(projectOnFrame(f, node.position())));
+    node.position(framePoint(f, offsetCm));
+    if (offsetCm !== o.offsetCm) updateOpening(id, { offsetCm }, { undoKey: false });
+  };
+
   const labelScale = { scaleX: k, scaleY: k };
 
   return (
@@ -168,6 +206,37 @@ export function PlanLayer({ stageScale, interactive, editing, underlay, underlay
               onDragStart={handleDragStart(ref)} onDragMove={handleDragMove} onDragEnd={handleDragEnd}
               onTransformStart={handleTransformStart} onTransform={handleRoomTransform(r.id)}
             />
+          );
+        })}
+        {/* Doors and windows (painted over the walls) */}
+        {plan.openings.map((o) => {
+          const f = hostFrame(plan, o.host);
+          if (!f) return null;
+          return (
+            <OpeningShape
+              key={o.id} opening={o} frame={f} k={k}
+              interactive={interactive}
+              selected={editing && isSelected('opening', o.id)}
+              onClick={handleClick({ kind: 'opening', id: o.id })}
+              onDragStart={handleOpeningDragStart(o.id)}
+              onDragMove={handleOpeningDragMove(o.id)}
+            />
+          );
+        })}
+        {/* Window heights, on the room side (height matters for what fits under it) */}
+        {plan.openings.map((o) => {
+          if (o.type !== 'window') return null;
+          const f = hostFrame(plan, o.host);
+          if (!f) return null;
+          const text = o.window === 'floor' ? `${getWindowType('floor').label} H${o.heightCm}` : `床+${o.sillCm}〜${o.sillCm + o.heightCm}`;
+          // Keep the (horizontal) label clear of the wall whatever the wall's direction
+          const halfW = text.length * 3.2 + 4;
+          const gap = 6 + Math.abs(f.normal.x) * halfW + Math.abs(f.normal.y) * 7;
+          const p = framePoint(f, o.offsetCm, f.band[1] + gap * k);
+          return (
+            <Group key={o.id} x={p.x} y={p.y} {...labelScale} listening={false}>
+              <Text text={text} x={-60} y={-6} width={120} align="center" fontSize={10} fill="#0369A1" />
+            </Group>
           );
         })}
         {/* Room labels (constant on-screen size) */}

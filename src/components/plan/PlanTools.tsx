@@ -2,18 +2,21 @@ import { useAppStore } from '../../store/useAppStore';
 import type { PlanTool } from '../../types';
 import { SnapGridToggle } from '../toolbar/SnapGridToggle';
 import { NumField } from './NumField';
+import { DOOR_TYPES, WINDOW_TYPES } from '../../data/planKinds';
 
 const TOOLS: Array<{ id: PlanTool; label: string }> = [
   { id: 'select', label: '選択' },
   { id: 'room', label: '＋部屋' },
+  { id: 'door', label: '＋扉' },
+  { id: 'window', label: '＋窓' },
 ];
 
 const HINTS: Record<PlanTool, string> = {
   select: 'ドラッグで移動、ハンドルでサイズ変更。何もない所のドラッグで画面移動。',
   room: 'ドラッグで部屋を描きます（クリックで 300×300）。',
   wall: 'ドラッグで壁を引きます。',
-  door: '壁の近くをクリックして扉を置きます。',
-  window: '壁の近くをクリックして窓を置きます。',
+  door: '壁の近くをクリックして扉を置きます（続けて置けます。Esc で選択に戻る）。',
+  window: '壁の近くをクリックして窓を置きます（続けて置けます。Esc で選択に戻る）。',
   fixture: 'ドラッグで設備を描きます（クリックで既定サイズ）。',
 };
 
@@ -21,6 +24,9 @@ const HINTS: Record<PlanTool, string> = {
 export function PlanTools() {
   const tool = useAppStore((s) => s.planTool);
   const setPlanTool = useAppStore((s) => s.setPlanTool);
+  const doorType = useAppStore((s) => s.planDoorType);
+  const windowType = useAppStore((s) => s.planWindowType);
+  const setPlanPlaceType = useAppStore((s) => s.setPlanPlaceType);
   const plan = useAppStore((s) => s.project.plan);
   const hasImage = useAppStore((s) => !!s.project.floorplan);
   const updatePlanSettings = useAppStore((s) => s.updatePlanSettings);
@@ -41,6 +47,24 @@ export function PlanTools() {
             </button>
           ))}
         </div>
+        {tool === 'door' && (
+          <div className="plan-kind-picker">
+            {DOOR_TYPES.map((t) => (
+              <button key={t.id} className={t.id === doorType ? 'active' : undefined} onClick={() => setPlanPlaceType({ planDoorType: t.id })}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {tool === 'window' && (
+          <div className="plan-kind-picker">
+            {WINDOW_TYPES.map((t) => (
+              <button key={t.id} className={t.id === windowType ? 'active' : undefined} onClick={() => setPlanPlaceType({ planWindowType: t.id })}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
         <p className="plan-note">{HINTS[tool]}</p>
       </div>
 
